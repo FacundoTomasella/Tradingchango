@@ -26,32 +26,40 @@ const App: React.FC = () => {
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [favorites, setFavorites] = useState<Record<number, number>>({});
+  const [showPwaPill, setShowPwaPill] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(
     (localStorage.getItem('theme') as 'light' | 'dark') || 'light'
   );
 
-  // --- HASH ROUTING LOGIC ---
+  // --- HASH ROUTING & PWA ---
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash.replace('#', '');
       if (hash.startsWith('product/')) {
         const id = parseInt(hash.split('/')[1]);
         if (!isNaN(id)) setSelectedProductId(id);
-      } else if (['about', 'terms', 'contact'].includes(hash)) {
+      } else if (['about', 'terms', 'contact', 'home', 'carnes', 'verdu', 'varios', 'favs'].includes(hash)) {
         setCurrentTab(hash as TabType);
-      } else if (['home', 'carnes', 'verdu', 'varios', 'favs'].includes(hash)) {
-        setCurrentTab(hash as TabType);
-      } else {
-        if (!hash) window.location.hash = 'home';
+      } else if (!hash) {
+        window.location.hash = 'home';
       }
     };
     window.addEventListener('hashchange', handleHash);
     handleHash();
+
+    // Check PWA display
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const wasClosed = sessionStorage.getItem('pwaPillClosed');
+    if (!isStandalone && !wasClosed) {
+      setTimeout(() => setShowPwaPill(true), 2000);
+    }
+
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
   const navigateTo = (tab: TabType) => {
     window.location.hash = tab;
+    setCurrentTab(tab);
   };
 
   const openProduct = (id: number) => {
@@ -59,7 +67,7 @@ const App: React.FC = () => {
   };
 
   const closeProduct = () => {
-    const lastTab = ['home', 'carnes', 'verdu', 'varios', 'favs', 'about', 'terms', 'contact'].includes(currentTab) ? currentTab : 'home';
+    const lastTab = ['home', 'carnes', 'verdu', 'varios', 'favs'].includes(currentTab) ? currentTab : 'home';
     window.location.hash = lastTab;
     setSelectedProductId(null);
   };
@@ -90,7 +98,6 @@ const App: React.FC = () => {
       setLoading(false);
     } catch (err: any) {
       console.error("Error loading app data:", err);
-      setError("No se pudieron cargar los productos.");
       setLoading(false);
     }
   }, []);
@@ -101,18 +108,12 @@ const App: React.FC = () => {
       setUser(sessionUser);
       loadData(sessionUser);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionUser = session?.user ?? null;
       setUser(sessionUser);
-      if (_event === 'SIGNED_IN') {
-        loadData(sessionUser);
-      } else if (_event === 'SIGNED_OUT') {
-        setProfile(null);
-        setFavorites({});
-      }
+      if (_event === 'SIGNED_IN') loadData(sessionUser);
+      else if (_event === 'SIGNED_OUT') { setProfile(null); setFavorites({}); }
     });
-
     return () => subscription.unsubscribe();
   }, [loadData]);
 
@@ -124,9 +125,7 @@ const App: React.FC = () => {
   }, [theme]);
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem(`favs_${user.id}`, JSON.stringify(favorites));
-    }
+    if (user) localStorage.setItem(`favs_${user.id}`, JSON.stringify(favorites));
   }, [favorites, user]);
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
@@ -160,11 +159,9 @@ const App: React.FC = () => {
       const t = searchTerm.toLowerCase();
       result = result.filter(p => p.nombre.toLowerCase().includes(t) || (p.ticker && p.ticker.toLowerCase().includes(t)));
     }
-    
     if (trendFilter && currentTab !== 'favs') {
       result = result.filter(p => trendFilter === 'up' ? p.stats.isUp : p.stats.isDown);
     }
-    
     return result;
   }, [products, history, currentTab, searchTerm, trendFilter, favorites]);
 
@@ -173,12 +170,10 @@ const App: React.FC = () => {
     const isFav = !!favorites[id];
     const isPro = profile?.subscription === 'pro' || profile?.subscription === 'premium';
     const favCount = Object.keys(favorites).length;
-
     if (!isPro && !isFav && favCount >= 5) {
-      alert("Límite de 5 favoritos para usuarios FREE. ¡Pasate a PRO para ilimitados!");
+      alert("Límite de 5 favoritos alcanzado. ¡Pasate a PRO!");
       return;
     }
-
     setFavorites(prev => {
       const next = { ...prev };
       if (next[id]) delete next[id];
@@ -187,12 +182,25 @@ const App: React.FC = () => {
     });
   };
 
-  if (loading && products.length === 0) return <div className="min-h-screen flex items-center justify-center dark:bg-black dark:text-white font-mono text-xs uppercase tracking-widest animate-pulse">Analizando mercado...</div>;
+  const closePwaPill = () => {
+    setShowPwaPill(false);
+    sessionStorage.setItem('pwaPillClosed', 'true');
+  };
+
+  if (loading && products.length === 0) return <div className="min-h-screen flex items-center justify-center dark:bg-black dark:text-white font-mono text-[10px] uppercase tracking-[0.2em] animate-pulse">Analizando mercado...</div>;
 
   const isProductTab = ['home', 'carnes', 'verdu', 'varios', 'favs'].includes(currentTab);
 
   return (
-    <div className="max-w-screen-md mx-auto min-h-screen bg-white dark:bg-black shadow-2xl transition-colors">
+    <div className="max-w-screen-md mx-auto min-h-screen bg-white dark:bg-black shadow-2xl transition-colors font-sans selection:bg-green-500 selection:text-white">
+      {/* PWA PILL */}
+      {showPwaPill && (
+        <div className="fixed bottom-[85px] left-1/2 -translate-x-1/2 z-[1000] bg-black dark:bg-white text-white dark:text-black px-4 py-2.5 rounded-full flex items-center gap-3 shadow-2xl animate-in slide-in-from-bottom-10 duration-500 cursor-pointer">
+          <span onClick={(e) => { e.stopPropagation(); closePwaPill(); }} className="opacity-50 text-base">×</span>
+          <span className="text-[11px] font-[800] uppercase tracking-wider">Instalar App 🛒</span>
+        </div>
+      )}
+
       <Header 
         searchTerm={searchTerm} setSearchTerm={setSearchTerm} 
         toggleTheme={toggleTheme} theme={theme}
@@ -203,8 +211,8 @@ const App: React.FC = () => {
         onNavigate={navigateTo}
         currentTab={currentTab}
       />
+      
       <main className="pb-24">
-        {error && <div className="p-4 bg-red-50 text-red-600 text-xs font-bold text-center">{error}</div>}
         {isProductTab ? (
           <>
             {currentTab === 'favs' && filteredProducts.length > 0 && <CartSummary items={filteredProducts} favorites={favorites} benefits={benefits} />}
@@ -214,8 +222,8 @@ const App: React.FC = () => {
               isCartView={currentTab === 'favs'} quantities={favorites}
               onUpdateQuantity={(id, d) => setFavorites(p => ({...p, [id]: Math.max(1, (p[id]||1)+d)}))}
             />
-            {!loading && filteredProducts.length === 0 && (
-              <div className="py-20 text-center flex flex-col items-center gap-4 animate-in fade-in duration-700 px-8">
+            {filteredProducts.length === 0 && (
+              <div className="py-24 text-center flex flex-col items-center gap-4 animate-in fade-in duration-700 px-8">
                 {currentTab === 'favs' ? (
                   <>
                     <i className="fa-solid fa-cart-shopping text-6xl text-slate-100 dark:text-slate-900"></i>
@@ -240,9 +248,29 @@ const App: React.FC = () => {
           </div>
         )}
       </main>
+
       <BottomNav currentTab={currentTab} setCurrentTab={navigateTo} cartCount={Object.keys(favorites).length} />
-      {selectedProductId && <ProductDetail productId={selectedProductId} onClose={closeProduct} onFavoriteToggle={toggleFavorite} isFavorite={!!favorites[selectedProductId]} products={products} theme={theme} />}
-      {isAuthOpen && <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} user={user} profile={profile} onSignOut={() => setUser(null)} />}
+      
+      {selectedProductId && (
+        <ProductDetail 
+          productId={selectedProductId} 
+          onClose={closeProduct} 
+          onFavoriteToggle={toggleFavorite} 
+          isFavorite={!!favorites[selectedProductId]} 
+          products={products} 
+          theme={theme} 
+        />
+      )}
+      
+      {isAuthOpen && (
+        <AuthModal 
+          isOpen={isAuthOpen} 
+          onClose={() => setIsAuthOpen(false)} 
+          user={user} 
+          profile={profile} 
+          onSignOut={() => setUser(null)} 
+        />
+      )}
       <Footer />
     </div>
   );
