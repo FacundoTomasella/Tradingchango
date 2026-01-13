@@ -17,18 +17,18 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentTab, setCurrentTab, cartCo
   ];
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-screen-md bg-white dark:bg-black border-t border-slate-100 dark:border-slate-900 flex justify-around py-2.5 z-40">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-screen-md bg-white dark:bg-black border-t border-slate-100 dark:border-slate-900 flex justify-around py-3 z-40">
       {tabs.map((tab) => (
         <button 
           key={tab.id}
           onClick={() => setCurrentTab(tab.id)}
           className={`relative flex flex-col items-center gap-1 w-1/5 transition-all ${currentTab === tab.id ? 'text-black dark:text-white' : 'text-slate-400'}`}
         >
-          <i className={`fa-solid ${tab.icon} text-xl`}></i>
-          <span className={`text-[10px] font-bold ${currentTab === tab.id ? 'opacity-100' : 'opacity-60'}`}>{tab.label}</span>
+          <i className={`fa-solid ${tab.icon} text-[20px]`}></i>
+          <span className={`text-[10px] font-[800] tracking-tight ${currentTab === tab.id ? 'opacity-100' : 'opacity-60'}`}>{tab.label}</span>
           
           {tab.badge !== undefined && tab.badge > 0 && (
-            <span className="absolute -top-1.5 right-[15%] bg-black dark:bg-white text-white dark:text-black text-[9px] font-black min-w-[15px] h-3.5 rounded-full flex items-center justify-center px-1 animate-in zoom-in">
+            <span className="absolute -top-1.5 right-[15%] bg-black dark:bg-white text-white dark:text-black text-[9px] font-[800] min-w-[16px] h-4 rounded-full flex items-center justify-center px-1 animate-in zoom-in border border-white dark:border-black">
               {tab.badge}
             </span>
           )}

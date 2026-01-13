@@ -30,26 +30,6 @@ const App: React.FC = () => {
     (localStorage.getItem('theme') as 'light' | 'dark') || 'light'
   );
 
-  // Deep Linking Handler
-  useEffect(() => {
-    const handleHash = () => {
-      const hash = window.location.hash.replace('#', '');
-      if (hash.startsWith('product/')) {
-        setSelectedProductId(parseInt(hash.split('/')[1]));
-      } else if (['home', 'carnes', 'verdu', 'varios', 'favs', 'about', 'terms', 'contact'].includes(hash)) {
-        setCurrentTab(hash as TabType);
-        setSelectedProductId(null);
-      }
-    };
-    window.addEventListener('hashchange', handleHash);
-    handleHash();
-    return () => window.removeEventListener('hashchange', handleHash);
-  }, []);
-
-  const navigate = (tab: TabType) => {
-    window.location.hash = tab;
-  };
-
   const loadData = useCallback(async (sessionUser: User | null) => {
     try {
       setLoading(true);
@@ -66,13 +46,6 @@ const App: React.FC = () => {
       if (sessionUser) {
         const prof = await getProfile(sessionUser.id);
         setProfile(prof);
-        if (prof) {
-          const lastWelcome = sessionStorage.getItem('welcome_shown');
-          if (lastWelcome !== sessionUser.id) {
-            alert(`¡Bienvenido, ${prof.nombre || 'Trader'}!`);
-            sessionStorage.setItem('welcome_shown', sessionUser.id);
-          }
-        }
         const savedFavs = localStorage.getItem(`favs_${sessionUser.id}`);
         if (savedFavs) setFavorites(JSON.parse(savedFavs));
       }
@@ -82,7 +55,8 @@ const App: React.FC = () => {
       setBenefits(benefitData);
       setLoading(false);
     } catch (err: any) {
-      setError("Error al conectar con el mercado.");
+      console.error("Error loading app data:", err);
+      setError("No se pudieron cargar los productos.");
       setLoading(false);
     }
   }, []);
@@ -97,25 +71,31 @@ const App: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionUser = session?.user ?? null;
       setUser(sessionUser);
-      if (_event === 'SIGNED_IN') loadData(sessionUser);
-      else if (_event === 'SIGNED_OUT') {
+      if (_event === 'SIGNED_IN') {
+        loadData(sessionUser);
+      } else if (_event === 'SIGNED_OUT') {
         setProfile(null);
         setFavorites({});
-        sessionStorage.removeItem('welcome_shown');
       }
     });
+
     return () => subscription.unsubscribe();
   }, [loadData]);
 
   useEffect(() => {
     const root = window.document.documentElement;
-    if (theme === 'dark') root.classList.add('dark');
-    else root.classList.remove('dark');
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
     localStorage.setItem('theme', theme);
   }, [theme]);
 
   useEffect(() => {
-    if (user) localStorage.setItem(`favs_${user.id}`, JSON.stringify(favorites));
+    if (user) {
+      localStorage.setItem(`favs_${user.id}`, JSON.stringify(favorites));
+    }
   }, [favorites, user]);
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
@@ -127,8 +107,8 @@ const App: React.FC = () => {
     let diff = 0, tc = 'text-slate-500', icon = '-', isUp = false, isDown = false;
     if (h > 0) {
       diff = ((min - h) / h) * 100;
-      if (diff > 0.1) { tc = 'text-red-500'; icon = '▲'; isUp = true; }
-      else if (diff < -0.1) { tc = 'text-green-500'; icon = '▼'; isDown = true; }
+      if (diff > 0.1) { tc = 'text-[#f23645]'; icon = '▲'; isUp = true; }
+      else if (diff < -0.1) { tc = 'text-[#00c853]'; icon = '▼'; isDown = true; }
     }
     return { min, spread: Math.abs(diff).toFixed(1), trendClass: tc, icon, isUp, isDown };
   };
@@ -147,12 +127,13 @@ const App: React.FC = () => {
 
     if (searchTerm) {
       const t = searchTerm.toLowerCase();
-      result = result.filter(p => p.nombre.toLowerCase().includes(t) || (p.ticker && p.ticker.toLowerCase().includes(t)));
+      result = result.filter(p => p.nombre.toLowerCase().includes(t) || p.ticker?.toLowerCase().includes(t));
     }
     
     if (trendFilter && currentTab !== 'favs') {
       result = result.filter(p => trendFilter === 'up' ? p.stats.isUp : p.stats.isDown);
     }
+    
     return result;
   }, [products, history, currentTab, searchTerm, trendFilter, favorites]);
 
@@ -186,51 +167,39 @@ const App: React.FC = () => {
         toggleTheme={toggleTheme} theme={theme}
         onUserClick={() => setIsAuthOpen(true)} user={user}
         subscription={profile?.subscription} trendFilter={trendFilter}
-        setTrendFilter={setTrendFilter} 
-        showHero={currentTab === 'home' && !searchTerm && !trendFilter}
-        onNavigate={navigate} currentTab={currentTab}
+        setTrendFilter={setTrendFilter} showHero={currentTab === 'home' && !searchTerm}
+        onNavigate={setCurrentTab}
+        currentTab={currentTab}
       />
-      <main className="pb-20">
+      <main className="pb-24">
         {error && <div className="p-4 bg-red-50 text-red-600 text-xs font-bold text-center">{error}</div>}
         {isProductTab ? (
           <>
             {currentTab === 'favs' && filteredProducts.length > 0 && <CartSummary items={filteredProducts} favorites={favorites} benefits={benefits} />}
             <ProductList 
-              products={filteredProducts as any} 
-              onProductClick={(id) => window.location.hash = `product/${id}`}
+              products={filteredProducts as any} onProductClick={setSelectedProductId}
               onFavoriteToggle={toggleFavorite} isFavorite={id => !!favorites[id]}
               isCartView={currentTab === 'favs'} quantities={favorites}
               onUpdateQuantity={(id, d) => setFavorites(p => ({...p, [id]: Math.max(1, (p[id]||1)+d)}))}
             />
             {!loading && filteredProducts.length === 0 && (
-              <div className="py-20 text-center flex flex-col items-center gap-4 px-8">
+              <div className="py-20 text-center flex flex-col items-center gap-4 animate-in fade-in duration-700 px-8">
                 <i className="fa-solid fa-box-open text-6xl text-slate-100 dark:text-slate-900"></i>
-                <div className="text-black dark:text-white text-sm font-black uppercase tracking-widest">
-                  {currentTab === 'favs' ? 'Tu chango está vacío' : 'No se encontraron resultados'}
-                </div>
-                <p className="text-slate-400 text-xs font-medium">
-                  {currentTab === 'favs' ? 'Agregá productos para comparar el total.' : 'Probá con otros términos.'}
-                </p>
+                <div className="text-black dark:text-white text-base font-extrabold uppercase tracking-tight">Tu chango está vacío</div>
+                <p className="text-slate-500 text-sm font-medium">Agregá productos para comparar el total en los distintos supermercados.</p>
               </div>
             )}
           </>
         ) : (
           <div className="animate-in fade-in duration-500">
-            {currentTab === 'about' && <AboutView onClose={() => navigate('home')} content={config.about_content} />}
-            {currentTab === 'terms' && <TermsView onClose={() => navigate('home')} content={config.terms_content} />}
-            {currentTab === 'contact' && <ContactView onClose={() => navigate('home')} content={config.contact_content} email={config.contact_email} />}
+            {currentTab === 'about' && <AboutView onClose={() => setCurrentTab('home')} content={config.about_content} />}
+            {currentTab === 'terms' && <TermsView onClose={() => setCurrentTab('home')} content={config.terms_content} />}
+            {currentTab === 'contact' && <ContactView onClose={() => setCurrentTab('home')} content={config.contact_content} email={config.contact_email} />}
           </div>
         )}
       </main>
-      <BottomNav currentTab={currentTab} setCurrentTab={navigate} cartCount={Object.keys(favorites).length} />
-      {selectedProductId && (
-        <ProductDetail 
-          productId={selectedProductId} 
-          onClose={() => { setSelectedProductId(null); window.location.hash = currentTab; }} 
-          onFavoriteToggle={toggleFavorite} isFavorite={!!favorites[selectedProductId]} products={products} 
-          theme={theme}
-        />
-      )}
+      <BottomNav currentTab={currentTab} setCurrentTab={setCurrentTab} cartCount={Object.keys(favorites).length} />
+      {selectedProductId && <ProductDetail productId={selectedProductId} onClose={() => setSelectedProductId(null)} onFavoriteToggle={toggleFavorite} isFavorite={!!favorites[selectedProductId]} products={products} theme={theme} />}
       {isAuthOpen && <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} user={user} profile={profile} onSignOut={() => setUser(null)} />}
       <Footer />
     </div>
