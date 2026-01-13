@@ -46,20 +46,14 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-[#ffffff] dark:bg-[#000000] p-4 border-b border-border-light dark:border-border-dark">
       <div className="flex justify-between items-center mb-4">
-        {/* Estructura de Logo solicitada */}
+        {/* Estructura de Logo Actualizada */}
         <div className="logo-link" onClick={() => onNavigate('home')}>
           <div className="logo">
             <div className="logo-icon-wrapper">
-               {/* Icono del carrito con flecha de tendencia recreado */}
-               <svg viewBox="0 0 100 100" className="w-full h-full text-current fill-current">
-                  <path d="M10,20 L30,20 L35,60 L85,60 L90,30 L35,30" strokeWidth="6" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="43" cy="80" r="10"/>
-                  <circle cx="75" cy="80" r="10"/>
-                  <path d="M50,45 L65,30 L75,40 L95,15" stroke="#00a650" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M85,15 L95,15 L95,25" stroke="#00a650" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-               </svg>
+               <i className="fa-solid fa-cart-shopping" style={{ fontSize: '18px' }}></i>
+               <i className="fa-solid fa-arrow-trend-up trend-icon-overlay"></i>
             </div>
-            <span>TradingChango</span>
+            TradingChango
           </div>
         </div>
 

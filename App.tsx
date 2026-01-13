@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase, getProducts, getPriceHistory, getProfile, getConfig, getBenefits, getSavedCart, saveCart } from './services/supabase';
@@ -32,7 +31,6 @@ const App: React.FC = () => {
     (localStorage.getItem('theme') as 'light' | 'dark') || 'light'
   );
 
-  // Bloque solicitado: Configuración inicial de Tema y Navegación
   useEffect(() => {
     // 1. Configuración del Tema al cargar
     const savedTheme = localStorage.getItem('theme');
@@ -62,7 +60,11 @@ const App: React.FC = () => {
     window.addEventListener('hashchange', handleHash);
     handleHash();
 
-    // 3. PWA Install Logic (Integrado en el mismo effect de inicialización)
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []); // <--- Cierre solicitado revisado
+
+  // Manejo de prompt de instalación PWA por separado para claridad
+  useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -73,14 +75,9 @@ const App: React.FC = () => {
       }
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('hashchange', handleHash);
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  // Sincronizar el DOM cuando el estado de theme cambia manualmente
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');

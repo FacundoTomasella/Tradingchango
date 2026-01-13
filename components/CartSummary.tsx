@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { Product, Benefit, UserMembership } from '../types';
 
@@ -73,14 +72,18 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
 
   const best = results[0];
   const others = results.slice(1).filter(r => r.subtotal < 500000);
-  const potentialSavings = others.length > 0 ? others[others.length - 1].totalChango - best.totalChango : 0;
+  
+  // Ahorro total relativo a la opción más cara viable
+  const worstOption = others.length > 0 ? others[others.length - 1] : best;
+  const potentialSavings = worstOption.totalChango - best.totalChango;
 
   const paymentAdvice = useMemo(() => {
     if (!best.storeBenefits.length) return null;
     
     const checkOwned = (entidad: string) => userMemberships.some(um => 
       um.slug.toLowerCase() === entidad.toLowerCase() || 
-      um.tipo.toLowerCase() === entidad.toLowerCase()
+      um.tipo.toLowerCase() === entidad.toLowerCase() ||
+      um.slug.toLowerCase().includes(entidad.toLowerCase())
     );
 
     const owned = best.storeBenefits
@@ -113,7 +116,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
             <div className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{best.name}</div>
           </div>
 
-          {/* 3. Subtotal, 4. Descuentos góndola, 5. Total Chango* */}
+          {/* 3, 4, 5. Desglose */}
           <div className="space-y-3 bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
             <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-tight">
               <span>Subtotal</span>
@@ -133,7 +136,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
             </div>
           </div>
 
-          {/* Legal disclaimer */}
+          {/* Disclaimer */}
           <p className="mt-4 text-[9px] text-center text-slate-400 font-medium leading-tight">
             *Es un valor informativo. El ahorro real depende de los T&C de cada entidad y la disponibilidad en góndola.
           </p>
@@ -150,7 +153,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
                   </div>
                   <div className="flex-1">
                     <p className="text-[10px] font-bold dark:text-white leading-snug">
-                      Pedí <b className="text-amber-600 uppercase">{paymentAdvice.recommend.entidad_nombre}</b> (referido) y sumá <b className="text-amber-600">{(paymentAdvice.recommend.descuento * 100).toFixed(0)}% OFF</b> extra.
+                      Pedí <b className="text-amber-600 uppercase">{paymentAdvice.recommend.entidad_nombre}</b> (referido) y sumá un <b className="text-amber-600">{(paymentAdvice.recommend.descuento * 100).toFixed(0)}% OFF</b> extra.
                     </p>
                     <a href={paymentAdvice.recommend.link_referido} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-block text-[9px] font-black text-amber-600 uppercase underline underline-offset-4">Obtener Beneficio</a>
                   </div>
@@ -184,7 +187,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
             
             {isExpanded && (
               <div className="mt-4 space-y-2 animate-in slide-in-from-top-2 duration-300">
-                {others.map((store) => (
+                {results.map((store) => (
                   <div key={store.name} className="flex justify-between items-center py-3 px-4 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-slate-100 dark:border-slate-800">
                     <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{store.name}</span>
                     <span className="font-mono text-sm font-bold text-slate-900 dark:text-white">${format(Math.round(store.totalChango))}</span>
