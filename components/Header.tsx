@@ -64,11 +64,11 @@ const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-40 bg-white/95 dark:bg-black/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 p-4">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('home')}>
-          <div className="relative flex items-center justify-center h-10 w-10">
-            <i className="fa-solid fa-cart-shopping text-2xl text-black dark:text-white"></i>
-            <i className="fa-solid fa-arrow-trend-up text-xs text-green-500 absolute -top-1 -right-1 bg-white dark:bg-black rounded-full p-0.5"></i>
+          <div className="relative flex items-center justify-center h-8 w-8">
+            <i className="fa-solid fa-cart-shopping text-xl text-black dark:text-white"></i>
+            <i className="fa-solid fa-arrow-trend-up text-[9px] text-green-500 absolute -top-1 -right-1 bg-white dark:bg-black rounded-full p-0.5"></i>
           </div>
-          <span className="font-extrabold text-2xl tracking-tighter text-black dark:text-white">TradingChango</span>
+          <span className="font-extrabold text-xl tracking-tighter text-black dark:text-white">TradingChango</span>
         </div>
 
         <div className="flex items-center gap-3">
