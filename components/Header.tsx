@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { TabType } from '../types';
 
@@ -46,10 +47,15 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-[#ffffff] dark:bg-[#000000] p-4 border-b border-border-light dark:border-border-dark">
       <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('home')}>
-          <div className="relative flex items-center justify-center h-8 w-8">
-            <i className="fa-solid fa-cart-shopping text-[22px] text-primary dark:text-[#ffffff]"></i>
-            <i className="fa-solid fa-arrow-trend-up text-[10px] text-chart-green absolute -top-[4px] -right-[2px] bg-[#ffffff] dark:bg-[#000000] rounded-full p-[1px]"></i>
+        <div className="flex items-center gap-[8px] cursor-pointer group" onClick={() => onNavigate('home')}>
+          <div className="relative flex items-center justify-center h-[24px] w-[30px]">
+             {/* Logo SVG que replica la imagen: Carrito negro + Flecha verde de tendencia */}
+             <svg viewBox="0 0 100 100" className="w-full h-full text-[#131722] dark:text-[#ffffff] fill-current">
+                <path d="M15,25 L35,25 L40,65 L85,65 L90,35 L40,35" strokeWidth="7" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="48" cy="85" r="10"/>
+                <circle cx="78" cy="85" r="10"/>
+                <path d="M55,50 L68,35 L78,45 L95,20 M95,20 L95,35 M95,20 L80,20" stroke="#00a650" strokeWidth="9" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+             </svg>
           </div>
           <span className="font-[800] text-[22px] tracking-[-1px] text-primary dark:text-[#ffffff] leading-none font-sans">TradingChango</span>
         </div>

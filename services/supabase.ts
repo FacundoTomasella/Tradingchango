@@ -1,10 +1,10 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { Product, PriceHistory, Profile, Benefit, UserMembership } from '../types';
 
-// Safely access environment variables
 const getEnvVar = (name: string): string => {
   try {
-    // @ts-ignore - Vite specific
+    // @ts-ignore
     return import.meta.env[name] || '';
   } catch (e) {
     return '';
@@ -23,7 +23,7 @@ const isValidUrl = (url: string) => {
 };
 
 export const supabase = createClient(
-  isValidUrl(SUPABASE_URL) ? SUPABASE_URL : 'https://placeholder-must-set-env-vars.supabase.co',
+  isValidUrl(SUPABASE_URL) ? SUPABASE_URL : 'https://placeholder.supabase.co',
   SUPABASE_KEY || 'placeholder-key'
 );
 
@@ -76,20 +76,29 @@ export const getProfile = async (userId: string): Promise<Profile | null> => {
   return data;
 };
 
-export const updateProfile = async (userId: string, updates: Partial<Profile>) => {
-  const { error } = await supabase
-    .from('perfiles')
-    .update(updates)
-    .eq('id', userId);
-  if (error) throw error;
-};
-
 export const updateMemberships = async (userId: string, memberships: UserMembership[]) => {
   const { error } = await supabase
     .from('perfiles')
     .update({ membresias: memberships })
     .eq('id', userId);
   if (error) throw error;
+};
+
+export const saveCart = async (userId: string, items: Record<number, number>) => {
+  const { error } = await supabase
+    .from('carritos_guardados')
+    .upsert({ user_id: userId, items, updated_at: new Date().toISOString() });
+  if (error) throw error;
+};
+
+export const getSavedCart = async (userId: string): Promise<Record<number, number> | null> => {
+  const { data, error } = await supabase
+    .from('carritos_guardados')
+    .select('items')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) return null;
+  return data?.items || null;
 };
 
 export const getCatalogoMembresias = async () => {

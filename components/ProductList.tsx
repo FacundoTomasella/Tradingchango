@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Product } from '../types';
 
@@ -105,9 +106,10 @@ const ProductList: React.FC<ProductListProps> = ({
                   e.stopPropagation();
                   onFavoriteToggle(p.id);
                 }}
-                className={`text-[22px] transition-transform active:scale-90 ${fav ? 'text-star-gold' : 'text-primary dark:text-[#ffffff]'}`}
+                className={`transition-all flex items-center justify-center active:scale-90 ${fav ? 'text-star-gold' : 'text-primary dark:text-[#ffffff]'}`}
+                style={{ width: '18px', height: '16.8px' }}
               >
-                <i className="fa-solid fa-cart-shopping"></i>
+                <i className="fa-solid fa-cart-shopping text-[16.5px]"></i>
               </button>
             </div>
           </div>
