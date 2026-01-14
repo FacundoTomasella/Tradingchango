@@ -50,7 +50,6 @@ const ProductList: React.FC<ProductListProps> = ({
     return ofertas.length > 0 ? ofertas : null;
   };
 
-  // 1. Estado vacío: Búsqueda sin resultados
   if (products.length === 0 && searchTerm) {
     return (
       <div className="flex flex-col items-center justify-center py-24 px-10 text-center animate-in fade-in zoom-in duration-500">
@@ -63,7 +62,6 @@ const ProductList: React.FC<ProductListProps> = ({
     );
   }
 
-  // 2. Estado vacío: Chango vacío
   if (products.length === 0 && isCartView) {
     return (
       <div className="flex flex-col items-center justify-center py-32 px-10 text-center animate-in fade-in zoom-in duration-700">
@@ -89,12 +87,12 @@ const ProductList: React.FC<ProductListProps> = ({
           <div 
             key={p.id} 
             onClick={() => onProductClick(p.id)}
-            className="flex items-center justify-between px-[20px] py-[16px] bg-[#ffffff] dark:bg-[#000000] hover:bg-bg-card-light dark:hover:bg-bg-card-dark cursor-pointer transition-colors"
+            className="flex items-center justify-between px-[20px] py-[18px] bg-[#ffffff] dark:bg-[#000000] hover:bg-bg-card-light dark:hover:bg-bg-card-dark cursor-pointer transition-colors"
           >
             <div className="flex-1 flex items-center justify-between pr-4">
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center flex-wrap gap-1.5">
-                  <span className="font-[800] text-primary dark:text-[#ffffff] text-[15px] md:text-[16px] tracking-tight uppercase font-mono block">
+                  <span className="font-[800] text-primary dark:text-[#ffffff] text-[16px] md:text-[17px] tracking-tight uppercase font-mono block">
                     {p.ticker || p.nombre.substring(0, 5).toUpperCase()}
                   </span>
                   {badges && badges.map((b, idx) => (
@@ -103,16 +101,16 @@ const ProductList: React.FC<ProductListProps> = ({
                     </span>
                   ))}
                 </div>
-                <span className="text-[12px] md:text-[13px] font-medium text-muted dark:text-muted-dark line-clamp-1 font-sans">
+                <span className="text-[13px] md:text-[14px] font-medium text-muted dark:text-muted-dark line-clamp-1 font-sans">
                   {p.nombre}
                 </span>
               </div>
 
               <div className="text-right flex flex-col items-end min-w-[100px]">
-                <span className="font-mono font-[700] text-primary dark:text-[#ffffff] text-[16px]">
+                <span className="font-mono font-[700] text-primary dark:text-[#ffffff] text-[17px] md:text-[18px]">
                   ${format(p.stats.min)}
                 </span>
-                <span className={`font-mono text-[11px] font-[700] mt-0.5 ${p.stats.trendClass}`}>
+                <span className={`font-mono text-[12px] font-[700] mt-0.5 ${p.stats.trendClass}`}>
                   {p.stats.icon} {p.stats.spread}%
                 </span>
               </div>
@@ -121,12 +119,12 @@ const ProductList: React.FC<ProductListProps> = ({
             <div className="flex items-center gap-4">
               {isCartView && onUpdateQuantity && (
                 <div 
-                  className="flex items-center gap-3 bg-bg-card-light dark:bg-bg-card-dark px-2 py-1 rounded-lg border border-border-light dark:border-border-dark"
+                  className="flex items-center gap-3 bg-bg-card-light dark:bg-bg-card-dark px-2 py-1.5 rounded-lg border border-border-light dark:border-border-dark"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button onClick={() => onUpdateQuantity(p.id, -1)} className="text-muted dark:text-muted-dark hover:text-primary dark:hover:text-white px-1 font-bold">-</button>
-                  <span className="font-mono text-sm font-bold min-w-[15px] text-center text-primary dark:text-[#ffffff]">{qty}</span>
-                  <button onClick={() => onUpdateQuantity(p.id, 1)} className="text-muted dark:text-muted-dark hover:text-primary dark:hover:text-white px-1 font-bold">+</button>
+                  <button onClick={() => onUpdateQuantity(p.id, -1)} className="text-muted dark:text-muted-dark hover:text-primary dark:hover:text-white px-2 font-black text-base">-</button>
+                  <span className="font-mono text-sm font-black min-w-[20px] text-center text-primary dark:text-[#ffffff]">{qty}</span>
+                  <button onClick={() => onUpdateQuantity(p.id, 1)} className="text-muted dark:text-muted-dark hover:text-primary dark:hover:text-white px-2 font-black text-base">+</button>
                 </div>
               )}
               
@@ -137,7 +135,7 @@ const ProductList: React.FC<ProductListProps> = ({
                 }}
                 className={`transition-all flex items-center justify-center active:scale-90 p-2 ${fav ? 'text-star-gold' : 'text-slate-300'}`}
               >
-                <i className="fa-solid fa-cart-shopping text-[18px]"></i>
+                <i className="fa-solid fa-cart-shopping text-[20px]"></i>
               </button>
             </div>
           </div>
