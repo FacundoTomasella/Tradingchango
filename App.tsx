@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase, getProducts, getPriceHistory, getProfile, getConfig, getBenefits, getSavedCart, saveCart } from './services/supabase';
@@ -61,9 +62,8 @@ const App: React.FC = () => {
     handleHash();
 
     return () => window.removeEventListener('hashchange', handleHash);
-  }, []); // <--- Cierre solicitado revisado
+  }, []);
 
-  // Manejo de prompt de instalación PWA por separado para claridad
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
@@ -123,6 +123,9 @@ const App: React.FC = () => {
           const local = localStorage.getItem(`favs_${sessionUser.id}`);
           if (local) setFavorites(JSON.parse(local));
         }
+      } else {
+        setProfile(null);
+        setFavorites({});
       }
 
       const day = new Date().getDay();
@@ -145,7 +148,11 @@ const App: React.FC = () => {
       const sessionUser = session?.user ?? null;
       setUser(sessionUser);
       if (_event === 'SIGNED_IN') loadData(sessionUser);
-      else if (_event === 'SIGNED_OUT') { setProfile(null); setFavorites({}); }
+      else if (_event === 'SIGNED_OUT') { 
+        setProfile(null); 
+        setFavorites({}); 
+        localStorage.removeItem('supabase.auth.token'); // Asegurar limpieza profunda
+      }
     });
     return () => subscription.unsubscribe();
   }, [loadData]);
@@ -194,7 +201,10 @@ const App: React.FC = () => {
   }, [products, history, currentTab, searchTerm, trendFilter, favorites]);
 
   const toggleFavorite = (id: number) => {
-    if (!user) { setIsAuthOpen(true); return; }
+    if (!user) { 
+      setIsAuthOpen(true); 
+      return; 
+    }
     setFavorites(prev => {
       const next = { ...prev };
       if (next[id]) delete next[id];
@@ -225,10 +235,14 @@ const App: React.FC = () => {
           <>
             {currentTab === 'favs' && filteredProducts.length > 0 && <CartSummary items={filteredProducts} favorites={favorites} benefits={benefits} userMemberships={profile?.membresias} />}
             <ProductList 
-              products={filteredProducts as any} onProductClick={id => window.location.hash = `product/${id}`}
-              onFavoriteToggle={toggleFavorite} isFavorite={id => !!favorites[id]}
-              isCartView={currentTab === 'favs'} quantities={favorites}
+              products={filteredProducts as any} 
+              onProductClick={id => window.location.hash = `product/${id}`}
+              onFavoriteToggle={toggleFavorite} 
+              isFavorite={id => !!favorites[id]}
+              isCartView={currentTab === 'favs'} 
+              quantities={favorites}
               onUpdateQuantity={(id, d) => setFavorites(p => ({...p, [id]: Math.max(1, (p[id]||1)+d)}))}
+              searchTerm={searchTerm}
             />
           </>
         ) : (
@@ -241,7 +255,15 @@ const App: React.FC = () => {
       </main>
       <BottomNav currentTab={currentTab} setCurrentTab={navigateTo} cartCount={Object.keys(favorites).length} />
       {selectedProductId && <ProductDetail productId={selectedProductId} onClose={() => navigateTo(currentTab)} onFavoriteToggle={toggleFavorite} isFavorite={!!favorites[selectedProductId]} products={products} theme={theme} />}
-      {isAuthOpen && <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} user={user} profile={profile} onSignOut={() => setUser(null)} />}
+      {/* Fix: Added onProfileUpdate prop to ensure the app data is refreshed when memberships are toggled */}
+      {isAuthOpen && <AuthModal 
+        isOpen={isAuthOpen} 
+        onClose={() => setIsAuthOpen(false)} 
+        user={user} 
+        profile={profile} 
+        onSignOut={() => setUser(null)} 
+        onProfileUpdate={() => loadData(user)} 
+      />}
       <Footer />
     </div>
   );

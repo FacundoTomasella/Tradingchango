@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Product } from '../types';
 
@@ -20,6 +21,7 @@ interface ProductListProps {
   isCartView?: boolean;
   quantities?: Record<number, number>;
   onUpdateQuantity?: (id: number, delta: number) => void;
+  searchTerm?: string;
 }
 
 const ProductList: React.FC<ProductListProps> = ({ 
@@ -29,7 +31,8 @@ const ProductList: React.FC<ProductListProps> = ({
   isFavorite,
   isCartView,
   quantities,
-  onUpdateQuantity
+  onUpdateQuantity,
+  searchTerm
 }) => {
   const format = (n: number) => new Intl.NumberFormat('es-AR').format(n);
 
@@ -47,6 +50,34 @@ const ProductList: React.FC<ProductListProps> = ({
     }
     return ofertas.length > 0 ? ofertas : null;
   };
+
+  // Estado vacío: Búsqueda sin resultados
+  if (products.length === 0 && searchTerm) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-10 text-center animate-in fade-in zoom-in duration-500">
+        <div className="w-20 h-20 bg-slate-50 dark:bg-slate-900/50 rounded-[2rem] flex items-center justify-center text-slate-300 mb-6 text-3xl">
+          <i className="fa-solid fa-magnifying-glass"></i>
+        </div>
+        <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tighter">No se encontraron productos</h3>
+        <p className="text-sm text-slate-400 font-medium">Probá buscando con otras palabras o navegando por categorías.</p>
+      </div>
+    );
+  }
+
+  // Estado vacío: Carrito vacío
+  if (products.length === 0 && isCartView) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 px-10 text-center animate-in fade-in zoom-in duration-700">
+        <div className="w-24 h-24 bg-slate-50 dark:bg-slate-900/50 rounded-[2.5rem] flex items-center justify-center text-slate-300 mb-8 text-4xl">
+          <i className="fa-solid fa-cart-shopping"></i>
+        </div>
+        <h3 className="text-xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tighter">Tu chango está vacío</h3>
+        <p className="text-sm text-slate-400 font-medium leading-relaxed max-w-[280px]">
+          Agregá productos para comparar el total en los distintos supermercados y maximizar tu ahorro.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="divide-y divide-border-light dark:divide-border-dark">
@@ -105,10 +136,9 @@ const ProductList: React.FC<ProductListProps> = ({
                   e.stopPropagation();
                   onFavoriteToggle(p.id);
                 }}
-                className={`transition-all flex items-center justify-center active:scale-90 ${fav ? 'text-star-gold' : 'text-primary dark:text-[#ffffff]'}`}
-                style={{ width: '18px', height: '16.8px' }}
+                className={`transition-all flex items-center justify-center active:scale-90 p-2 ${fav ? 'text-star-gold' : 'text-slate-300 hover:text-slate-900 dark:hover:text-white'}`}
               >
-                <i className="fa-solid fa-cart-shopping text-[16.5px]"></i>
+                <i className="fa-solid fa-cart-shopping text-[18px]"></i>
               </button>
             </div>
           </div>
