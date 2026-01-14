@@ -80,12 +80,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
   if (results.length === 0) {
     return (
       <div className="p-4">
-        <div className="bg-white dark:bg-black border-2 border-neutral-200 dark:border-neutral-800 rounded-[2rem] p-6 shadow-xl text-center">
-          <div className="w-12 h-12 bg-neutral-50 dark:bg-neutral-900 rounded-full flex items-center justify-center mx-auto mb-3 text-neutral-500">
-            <i className="fa-solid fa-circle-exclamation text-xl"></i>
+        <div className="bg-white dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-800 rounded-[1.5rem] p-5 shadow-xl text-center">
+          <div className="w-10 h-10 bg-neutral-100 dark:bg-neutral-900 rounded-full flex items-center justify-center mx-auto mb-3 text-neutral-500">
+            <i className="fa-solid fa-circle-exclamation text-lg"></i>
           </div>
-          <h3 className="text-[11px] font-black text-black dark:text-white uppercase tracking-widest mb-1">Chango Incompleto</h3>
-          <p className="text-[10px] text-neutral-500 font-medium">Ningún supermercado tiene stock de todos los productos de tu lista.</p>
+          <h3 className="text-[10px] font-black text-black dark:text-white uppercase tracking-widest mb-1">Chango Incompleto</h3>
+          <p className="text-[10px] text-neutral-500 dark:text-neutral-400 font-medium leading-tight">Ningún supermercado tiene stock total.</p>
         </div>
       </div>
     );
@@ -109,54 +109,52 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
   }, [best, userMemberships]);
 
   return (
-    <div className="p-4 space-y-4 animate-in fade-in duration-700">
-      {/* Tarjeta de Ganador con Marco más Grueso */}
-      <div className="bg-white dark:bg-black border-4 border-black dark:border-white rounded-[2rem] p-8 shadow-2xl relative overflow-hidden">
-        <div className="flex flex-col gap-6 relative z-10">
+    <div className="p-4 space-y-3 animate-in fade-in duration-700">
+      {/* Tarjeta de Ganador - Más Compacta */}
+      <div className="bg-white dark:bg-neutral-950 border-[3px] border-black dark:border-white rounded-[1.5rem] p-5 shadow-xl relative">
+        <div className="flex flex-col gap-4 relative z-10">
           
           {/* Fila 1: Ganador y Ahorro */}
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="text-[10px] font-black uppercase text-neutral-500 tracking-[0.2em] block">Mejor opción:</span>
-              <h2 className="text-3xl font-black text-black dark:text-white uppercase tracking-tighter leading-none">{best.name}</h2>
+          <div className="flex justify-between items-end">
+            <div className="space-y-0.5">
+              <span className="text-[9px] font-black uppercase text-neutral-500 tracking-[0.15em] block">Mejor opción:</span>
+              <h2 className="text-xl font-black text-black dark:text-white uppercase tracking-tighter leading-none flex items-center gap-2">
+                <i className="fa-solid fa-trophy text-star-gold text-base"></i>
+                {best.name}
+              </h2>
             </div>
             <div className="text-right">
-              <span className="text-[10px] font-black uppercase text-green-600 dark:text-green-400 tracking-[0.2em] block mb-1">Ahorrás:</span>
-              <div className="text-2xl font-black text-green-600 dark:text-green-400 tracking-tighter font-mono">${format(Math.round(potentialSavings))}</div>
+              <span className="text-[9px] font-black uppercase text-green-600 dark:text-green-400 tracking-[0.15em] block mb-0.5">Ahorrás:</span>
+              <div className="text-lg font-black text-green-600 dark:text-green-400 tracking-tighter font-mono">${format(Math.round(potentialSavings))}</div>
             </div>
           </div>
 
-          <hr className="border-neutral-100 dark:border-neutral-900" />
-
-          {/* Fila 2: Total Estimado Destacado */}
-          <div className="text-center py-2">
-            <span className="text-[11px] font-black uppercase text-neutral-500 tracking-[0.2em] block mb-2">Total Estimado:*</span>
-            <div className="text-5xl font-black text-black dark:text-white tracking-tighter font-mono">
+          <div className="border-t border-neutral-100 dark:border-neutral-800 pt-3 text-center">
+            <span className="text-[10px] font-black uppercase text-neutral-500 tracking-[0.15em] block mb-1">Total Estimado:*</span>
+            <div className="text-4xl font-black text-black dark:text-white tracking-tighter font-mono leading-none">
               ${format(Math.round(best.totalChango))}
             </div>
           </div>
 
-          {/* Fila 3: Desglose */}
-          <div className="bg-neutral-50 dark:bg-neutral-900/50 rounded-2xl p-5 space-y-3">
-            <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-tight">
+          {/* Fila 3: Desglose Compacto */}
+          <div className="bg-neutral-50 dark:bg-neutral-900 rounded-xl p-3.5 space-y-1.5">
+            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-tight">
               <span className="text-neutral-500">Subtotal:</span>
               <span className="text-black dark:text-white font-mono">${format(Math.round(best.subtotal))}</span>
             </div>
-            <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-tight">
+            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-tight">
               <span className="text-neutral-500">Descuentos:</span>
               <span className="text-green-500 font-mono">-$ {format(Math.round(best.gondolaDiscount))}</span>
             </div>
           </div>
 
           {/* Fila 4: Membresías y Referidos */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-2 pt-1">
             {paymentAdvice?.owned && (
-              <div className="flex items-center gap-3 text-left">
-                <div className="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center shrink-0">
-                  <i className="fa-solid fa-check text-white dark:text-black text-xs"></i>
-                </div>
+              <div className="flex items-center gap-2 text-left bg-black/5 dark:bg-white/5 p-2.5 rounded-xl border border-neutral-100 dark:border-neutral-800">
+                <i className="fa-solid fa-circle-check text-green-500 text-sm"></i>
                 <p className="text-[10px] font-black uppercase text-black dark:text-white leading-tight">
-                  Con tu <span className="underline underline-offset-4">{paymentAdvice.owned.entidad_nombre}</span> hoy podés ahorrar hasta <span className="text-green-500">{paymentAdvice.owned.descuento}%</span>*
+                  Con <span className="underline underline-offset-2">{paymentAdvice.owned.entidad_nombre}</span> ahorrás hasta <span className="text-green-500">{paymentAdvice.owned.descuento}%</span>*
                 </p>
               </div>
             )}
@@ -166,14 +164,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
                 href={paymentAdvice.recommend.link_referido} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="flex items-center gap-3 text-left p-4 rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors group"
+                className="flex items-center gap-3 text-left p-3 rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors group"
               >
-                <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <i className="fa-solid fa-rocket text-black dark:text-white text-xs"></i>
-                </div>
+                <i className="fa-solid fa-rocket text-black dark:text-white text-xs shrink-0"></i>
                 <div>
-                   <p className="text-[10px] font-black uppercase text-black dark:text-white leading-tight mb-0.5">🚀 Oportunidades de ahorro extra:</p>
-                   <p className="text-[9px] font-bold text-neutral-500 uppercase leading-none">Sacá la {paymentAdvice.recommend.entidad_nombre} para ahorrar hasta {paymentAdvice.recommend.descuento}%*</p>
+                   <p className="text-[9px] font-black uppercase text-black dark:text-white leading-tight">🚀 Extra:</p>
+                   <p className="text-[9px] font-bold text-neutral-500 dark:text-neutral-400 uppercase leading-none">Sacá la {paymentAdvice.recommend.entidad_nombre} y ahorrá {paymentAdvice.recommend.descuento}%*</p>
                 </div>
               </a>
             )}
@@ -181,25 +177,25 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
         </div>
       </div>
 
-      {/* Otros Mercados */}
+      {/* Otros Mercados - Más Comprimido */}
       {others.length > 0 && (
-        <div className="px-2">
+        <div className="px-1">
           <button 
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full flex items-center justify-between text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] py-3 hover:text-black dark:hover:text-white transition-colors"
+            className="w-full flex items-center justify-between text-[9px] font-black text-neutral-500 dark:text-neutral-400 uppercase tracking-[0.2em] py-2 hover:text-black dark:hover:text-white transition-colors"
           >
-            <span>Comparar con otros mercados ({others.length})</span>
-            <i className={`fa-solid fa-chevron-${isExpanded ? 'up' : 'down'} transition-transform text-[8px]`}></i>
+            <span>Ver otros ({others.length})</span>
+            <i className={`fa-solid fa-chevron-${isExpanded ? 'up' : 'down'} transition-transform text-[7px]`}></i>
           </button>
           
           {isExpanded && (
-            <div className="mt-2 space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+            <div className="mt-1 space-y-1 animate-in slide-in-from-top-1 duration-300">
               {others.map((store) => (
-                <div key={store.name} className="flex justify-between items-center py-4 px-6 bg-neutral-50 dark:bg-neutral-900/30 rounded-2xl border border-neutral-100 dark:border-neutral-800">
-                  <span className="text-[11px] font-black text-neutral-600 dark:text-neutral-400 uppercase tracking-tight">{store.name}</span>
-                  <div className="flex items-center gap-4">
-                    <span className="text-[10px] font-bold text-red-500 font-mono">+${format(Math.round(store.totalChango - best.totalChango))}</span>
-                    <span className="font-mono text-[14px] font-black text-black dark:text-white">${format(Math.round(store.totalChango))}</span>
+                <div key={store.name} className="flex justify-between items-center py-2.5 px-4 bg-neutral-50/50 dark:bg-neutral-900/50 rounded-xl border border-neutral-100 dark:border-neutral-800">
+                  <span className="text-[10px] font-black text-neutral-600 dark:text-neutral-400 uppercase">{store.name}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[9px] font-bold text-red-500 font-mono">+${format(Math.round(store.totalChango - best.totalChango))}</span>
+                    <span className="font-mono text-[12px] font-black text-black dark:text-white">${format(Math.round(store.totalChango))}</span>
                   </div>
                 </div>
               ))}
@@ -208,10 +204,10 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
         </div>
       )}
 
-      {/* Disclaimer Extendido */}
-      <div className="bg-neutral-50 dark:bg-neutral-900/30 rounded-[1.5rem] p-6">
-        <p className="text-[9px] text-neutral-500 dark:text-neutral-400 font-bold tracking-tight leading-relaxed uppercase">
-          *El monto final de tu compra se calculará exclusivamente al momento de realizar el pago en la web de {best.name}. Los descuentos bancarios, topes de reintegro y exclusiones de marcas dependen de los términos y condiciones vigentes de cada entidad. La disponibilidad de productos puede variar según la sucursal.
+      {/* Disclaimer - Más pequeño */}
+      <div className="bg-neutral-50/50 dark:bg-neutral-950 p-4 rounded-xl">
+        <p className="text-[8px] text-neutral-500 dark:text-neutral-500 font-bold tracking-tight leading-normal uppercase">
+          *El monto final se calculará al pagar en la web de {best.name}. Descuentos bancarios y T&C dependen de cada entidad. Sujeto a disponibilidad.
         </p>
       </div>
     </div>
