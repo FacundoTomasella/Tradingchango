@@ -95,88 +95,86 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm md:p-4">
       <div 
         ref={modalRef}
-        className="w-full max-w-2xl h-full md:h-auto md:max-h-[90vh] bg-white dark:bg-black md:rounded-[1rem] overflow-y-auto no-scrollbar shadow-2xl relative"
+        className="w-full max-w-2xl h-full md:h-auto md:max-h-[90vh] bg-white dark:bg-black md:rounded-[2rem] overflow-y-auto no-scrollbar shadow-2xl relative"
       >
-        <div className="sticky top-0 z-20 bg-white/95 dark:bg-black/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-neutral-100 dark:border-neutral-900">
+        {/* Header Modal - Centrado */}
+        <div className="sticky top-0 z-20 bg-white/95 dark:bg-black/95 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-neutral-100 dark:border-neutral-900">
+          <button onClick={onClose} className="text-black dark:text-white p-2 -ml-2">
+            <i className="fa-solid fa-arrow-left text-lg"></i>
+          </button>
+          <span className="text-sm font-black tracking-widest text-black dark:text-white uppercase">{ticker}</span>
           <div className="flex items-center gap-4">
-            <button onClick={onClose} className="text-black dark:text-white">
-              <i className="fa-solid fa-arrow-left text-lg"></i>
-            </button>
-            <span className="text-base font-black tracking-tight text-black dark:text-white uppercase">{ticker}</span>
-          </div>
-          <div className="flex items-center gap-6">
             <button onClick={() => onFavoriteToggle(product.id)} className={`text-xl transition-transform active:scale-90 ${isFavorite ? 'text-star-gold' : 'text-black dark:text-white'}`}>
               <i className="fa-solid fa-cart-shopping"></i>
-            </button>
-            <button className="text-black dark:text-white text-xl">
-              <i className="fa-solid fa-arrow-up-from-bracket"></i>
             </button>
           </div>
         </div>
 
-        <div className="p-6 md:p-8">
-          <div className="flex gap-5 items-start mb-6">
-            <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-xl border border-neutral-100 shadow-sm flex-shrink-0 flex items-center justify-center p-2">
+        <div className="p-8 flex flex-col items-center">
+          {/* Info Principal - Centrada */}
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="w-32 h-32 md:w-40 md:h-40 bg-white rounded-3xl border border-neutral-100 shadow-sm flex items-center justify-center p-4 mb-6 transition-transform hover:scale-105">
               <img src={product.imagen_url || 'https://via.placeholder.com/200?text=No+Img'} alt={product.nombre} className="w-full h-full object-contain" />
             </div>
-            <div className="flex-1">
-              <h1 className="text-xl md:text-2xl font-black text-black dark:text-white leading-tight mb-3 tracking-tight">
-                {product.nombre}
-              </h1>
-              
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
-                  Mejor precio hoy en {minStore}
+            
+            <h1 className="text-2xl md:text-3xl font-black text-black dark:text-white leading-tight mb-4 tracking-tighter max-w-md">
+              {product.nombre}
+            </h1>
+            
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">
+                Mejor precio hoy en {minStore}
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-black dark:text-white">$</span>
+                <span className="text-5xl md:text-6xl font-black text-black dark:text-white tracking-tighter font-mono">
+                  {format(minPrice)}
                 </span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-black dark:text-white">$</span>
-                  <span className="text-4xl md:text-5xl font-black text-black dark:text-white tracking-tighter">
-                    {format(minPrice)}
-                  </span>
-                </div>
               </div>
             </div>
           </div>
 
-          <div className="mb-8">
-            <div className="inline-flex items-center gap-2 bg-neutral-50 dark:bg-neutral-900/50 px-4 py-2 rounded-xl border border-neutral-100 dark:border-neutral-800">
+          <div className="mb-8 w-full flex justify-center">
+            <div className="inline-flex items-center gap-3 bg-neutral-50 dark:bg-neutral-900/50 px-5 py-2.5 rounded-2xl border border-neutral-100 dark:border-neutral-800">
               <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-tight">Precio promedio:</span>
-              <span className="text-[13px] font-black text-black dark:text-white font-mono">$ {format(Math.round(avgPrice))}</span>
+              <span className="text-[14px] font-black text-black dark:text-white font-mono">$ {format(Math.round(avgPrice))}</span>
             </div>
           </div>
 
-          <hr className="border-neutral-100 dark:border-neutral-900 mb-6" />
+          <hr className="w-full border-neutral-100 dark:border-neutral-900 mb-8" />
 
-          <div className="flex justify-start md:justify-end gap-1 mb-8">
+          {/* Selector de Temporalidad - Centrado */}
+          <div className="w-full flex justify-center gap-1.5 mb-10 overflow-x-auto no-scrollbar py-1">
             {[7, 15, 30, 90, 180, 365].map((d) => (
               <button 
                 key={d} 
                 onClick={() => setDays(d)}
-                className={`min-w-[42px] py-2 px-1 text-[10px] font-black rounded-lg transition-all ${days === d ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-neutral-50 dark:bg-neutral-900 text-neutral-400 border border-neutral-200 dark:border-neutral-800'}`}
+                className={`min-w-[50px] py-2.5 px-2 text-[10px] font-black rounded-xl transition-all border ${days === d ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white shadow-lg' : 'bg-neutral-50 dark:bg-neutral-900 text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600'}`}
               >
                 {d < 30 ? `${d}D` : d < 365 ? `${Math.floor(d / 30)}M` : '1Y'}
               </button>
             ))}
           </div>
 
-          <div className="mb-10">
-            <div className="mb-6">
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-black dark:text-white">Gráfico de tendencias</h3>
-              <div className="flex items-center gap-1.5 mt-1">
-                 <span className={`text-[12px] font-black ${isTrendUp ? 'text-red-500' : 'text-green-500'}`}>
+          {/* Gráfico - Títulos Centrados */}
+          <div className="mb-12 w-full">
+            <div className="flex flex-col items-center text-center mb-8">
+              <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-black dark:text-white mb-2">Historial de Tendencia</h3>
+              <div className="flex items-center gap-2">
+                 <span className={`text-[14px] font-black px-2 py-1 rounded-lg ${isTrendUp ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
                    {isTrendUp ? '▲' : '▼'} {Math.abs(percentageChange).toFixed(1)}%
                  </span>
-                 <span className="text-[10px] font-bold text-neutral-400 uppercase">en los últimos {days} días</span>
+                 <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-tight">Variación en {days} días</span>
               </div>
             </div>
             
-            <div className="h-64 w-full relative">
+            <div className="h-72 w-full relative group">
               {chartData.length > 1 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
+                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={trendColor} stopOpacity={0.1}/>
+                        <stop offset="5%" stopColor={trendColor} stopOpacity={0.15}/>
                         <stop offset="95%" stopColor={trendColor} stopOpacity={0}/>
                       </linearGradient>
                     </defs>
@@ -200,10 +198,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
                           return (
-                            <div className="bg-white dark:bg-neutral-900 p-3 rounded-xl shadow-xl border border-neutral-100 dark:border-neutral-800 animate-in zoom-in duration-200">
+                            <div className="bg-white dark:bg-neutral-900 p-4 rounded-2xl shadow-2xl border border-neutral-100 dark:border-neutral-800 animate-in zoom-in duration-200">
                               <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">{data.fullDate}</p>
-                              <p className="text-[11px] font-bold text-black dark:text-white uppercase mb-1">{data.store}</p>
-                              <p className="text-xl font-mono font-black text-black dark:text-white">${format(data.price)}</p>
+                              <p className="text-[11px] font-bold text-black dark:text-white uppercase mb-2">{data.store}</p>
+                              <p className="text-2xl font-mono font-black text-black dark:text-white tracking-tighter">${format(data.price)}</p>
                             </div>
                           );
                         }
@@ -214,45 +212,58 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
                       type="monotone" 
                       dataKey="price" 
                       stroke={trendColor} 
-                      strokeWidth={3} 
+                      strokeWidth={4} 
                       fill="url(#colorPrice)"
-                      animationDuration={1000}
+                      animationDuration={1500}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-[11px] font-black text-neutral-300 uppercase tracking-[0.2em]">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-[11px] font-black text-neutral-300 uppercase tracking-[0.2em] bg-neutral-50/50 dark:bg-neutral-900/20 rounded-3xl border border-dashed border-neutral-200 dark:border-neutral-800">
+                  <i className="fa-solid fa-chart-line text-3xl mb-4 opacity-20"></i>
                   Sin datos suficientes
                 </div>
               )}
             </div>
           </div>
 
-          <div className="border border-neutral-100 dark:border-neutral-800 rounded-2xl overflow-hidden mb-6">
+          {/* Precio por Mercado - Centrado */}
+          <div className="w-full border border-neutral-100 dark:border-neutral-800 rounded-[1.5rem] overflow-hidden mb-8">
             <button 
               onClick={() => setIsPricesOpen(!isPricesOpen)}
-              className="w-full flex items-center justify-between p-5 bg-neutral-50 dark:bg-neutral-900/30 hover:bg-neutral-100 dark:hover:bg-neutral-900/50 transition-colors"
+              className="w-full flex items-center justify-between p-6 bg-neutral-50 dark:bg-neutral-900/30 hover:bg-neutral-100 dark:hover:bg-neutral-900/50 transition-colors"
             >
-              <div className="flex items-center gap-3">
-                <i className="fa-solid fa-shop text-neutral-400"></i>
-                <span className="text-[11px] font-black uppercase tracking-widest text-black dark:text-white">Precio por Mercado</span>
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 rounded-lg bg-white dark:bg-neutral-800 flex items-center justify-center shadow-sm">
+                  <i className="fa-solid fa-shop text-neutral-400 text-sm"></i>
+                </div>
+                <span className="text-[11px] font-black uppercase tracking-[0.15em] text-black dark:text-white">Comparativa por Mercado</span>
               </div>
               <i className={`fa-solid fa-chevron-${isPricesOpen ? 'up' : 'down'} text-neutral-400 text-xs transition-transform`}></i>
             </button>
             
             {isPricesOpen && (
-              <div className="p-5 space-y-4 bg-white dark:bg-black animate-in slide-in-from-top-2 duration-300">
+              <div className="px-6 py-4 space-y-4 bg-white dark:bg-black animate-in slide-in-from-top-2 duration-300">
                 {STORES.map((s) => {
                   const price = (product as any)[s.key];
                   const url = (product as any)[s.url];
                   if (!price || price <= 0) return null;
                   return (
-                    <div key={s.name} className="flex items-center justify-between pb-4 border-b border-neutral-50 dark:border-neutral-900 last:border-0 last:pb-0">
+                    <div key={s.name} className="flex items-center justify-between py-4 border-b border-neutral-50 dark:border-neutral-900 last:border-0 last:pb-0">
                       <div className="flex flex-col">
                         <span className="text-[11px] font-black text-neutral-400 uppercase tracking-tight">{s.name}</span>
-                        {url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-[9px] font-bold text-black dark:text-white uppercase hover:underline">Ir a la web</a>}
+                        {url && (
+                          <a 
+                            href={url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-[9px] font-bold text-black dark:text-white uppercase hover:underline flex items-center gap-1.5 mt-1"
+                          >
+                            Ir a la web <i className="fa-solid fa-arrow-up-right-from-square text-[7px]"></i>
+                          </a>
+                        )}
                       </div>
-                      <span className={`text-xl font-mono font-black ${price === minPrice ? 'text-green-500' : 'text-black dark:text-white'}`}>
+                      <span className={`text-2xl font-mono font-black ${price === minPrice ? 'text-green-500' : 'text-black dark:text-white'}`}>
                         ${format(price)}
                       </span>
                     </div>
@@ -262,10 +273,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
             )}
           </div>
 
-          <div className="mt-8">
+          {/* Botón Acción - Ancho Completo pero Centrado Texto */}
+          <div className="w-full mt-4 sticky bottom-0 bg-white/95 dark:bg-black/95 backdrop-blur-md pb-8 pt-4">
             <button 
               onClick={() => onFavoriteToggle(product.id)} 
-              className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-[12px] transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 ${isFavorite ? 'bg-star-gold text-white' : 'bg-black dark:bg-white text-white dark:text-black'}`}
+              className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[12px] transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95 ${isFavorite ? 'bg-star-gold text-white shadow-star-gold/20' : 'bg-black dark:bg-white text-white dark:text-black shadow-black/20 dark:shadow-white/5'}`}
             >
               <i className="fa-solid fa-cart-shopping text-lg"></i>
               {isFavorite ? 'En el Chango' : 'Añadir al Chango'}
