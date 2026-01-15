@@ -195,7 +195,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
             <div className="h-44 md:h-52 w-full relative">
               {chartData.length > 1 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                  <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 20 }}>
                     <defs>
                       <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor={trendColor} stopOpacity={0.1}/>
@@ -203,8 +203,24 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
                       </linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} strokeDasharray="3 3" stroke={theme === 'dark' ? '#262626' : '#f0f0f0'} />
-                    <XAxis dataKey="date" hide />
-                    <YAxis orientation="right" axisLine={false} tickLine={false} tick={{fontSize: 8, fill: '#737373'}} domain={['auto', 'auto']} />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{fontSize: 8, fill: '#737373'}} 
+                      ticks={chartData.length > 2 ? [chartData[0].date, chartData[Math.floor(chartData.length / 2)].date, chartData[chartData.length - 1].date] : []}
+                      tickFormatter={(date) => date.replace('.', '')}
+                      interval="preserveStartEnd"
+                      dy={10}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      orientation="right" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fontSize: 8, fill: '#737373'}} 
+                      domain={['auto', 'auto']}
+                      tickFormatter={(value) => `$${format(value as number)}`}
+                    />
                     <Tooltip content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
