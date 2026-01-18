@@ -203,7 +203,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
                     </span>
                   </div>
                   <div className="flex items-baseline gap-1 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 px-2 py-1 rounded-md mb-0.5">
-                    <span className="text-[9px] font-bold text-neutral-500 dark:text-neutral-400 uppercase">Promedio:</span>
+                    <span className="text-[9px] font-bold text-neutral-600 dark:text-neutral-300 uppercase">Promedio:</span>
                     <span className="text-[13px] font-black text-black dark:text-white font-mono">$ {formatCurrency(Math.round(avgPrice))}</span>
                   </div>
                 </div>
@@ -233,14 +233,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
                  <span className={`text-xs font-black px-1.5 py-0.5 rounded-md ${isTrendUp ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
                    {isTrendUp ? '▲' : '▼'} {Math.abs(percentageChange).toFixed(1)}%
                  </span>
-                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Variación en {days} días</span>
+                 <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-300 uppercase tracking-widest">
+                  Variación en {days} días</span>
               </div>
             </div>
             
             <div className="h-44 md:h-52 w-full relative">
               {chartData.length > 1 ? (
                 <ResponsiveContainerComponent width="100%" height="100%">
-                  <AreaChartComponent data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 20 }}>
+                  <AreaChartComponent data={chartData} margin={{ top: 5, right: 0, left: 12, bottom: 20 }}>
                     <defs>
                       <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor={trendColor} stopOpacity={0.1}/>
@@ -248,8 +249,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
                       </linearGradient>
                     </defs>
                     <CartesianGridComponent vertical={false} strokeDasharray="3 3" stroke={theme === 'dark' ? '#262626' : '#f0f0f0'} />
-                    <XAxisComponent dataKey="date" tick={{fontSize: 8, fill: '#737373'}} tickLine={false} axisLine={false} />
-                    <YAxisComponent orientation="right" axisLine={false} tickLine={false} tick={{fontSize: 8, fill: '#737373'}} domain={['auto', 'auto']} tickFormatter={(val: number) => `$${formatCurrency(val)}`} />
+                    <XAxisComponent dataKey="date" tick={{fontSize: 8, fill: theme === 'dark' ? '#e5e5e5' : '#737373'}} tickLine={false} axisLine={false} />
+                    <YAxisComponent orientation="right" width={36} axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: theme === 'dark' ? '#e5e5e5' : '#737373' }} domain={['auto', 'auto']} tickFormatter={(val: number) => `$${formatCurrency(val)}`} />
                     <TooltipComponent content={<CustomTooltip />} />
                     <AreaComponent type="monotone" dataKey="price" stroke={trendColor} strokeWidth={2} fill="url(#colorPrice)" />
                   </AreaChartComponent>
@@ -263,7 +264,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
           {/* Tabla Comparativa (Misma estructura que tu imagen 1) */}
           <div className="w-full border border-neutral-100 dark:border-neutral-800 rounded-lg overflow-hidden mb-4">
             <div className="w-full flex items-center justify-between p-2.5 bg-neutral-50 dark:bg-neutral-900/50">
-              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-black dark:text-white">Comparativa por Mercado</span>
+              <span className="text-[12px] font-black uppercase tracking-[0.1em] text-black dark:text-white">Comparativa por Mercado</span>
             </div>
             <div className="px-3 py-2 space-y-2 bg-white dark:bg-neutral-950">
               {STORES.map((s) => {
