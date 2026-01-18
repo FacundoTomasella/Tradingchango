@@ -157,9 +157,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm md:p-4">
       <div 
-        ref={modalRef}
-        className="w-full max-w-lg h-full md:h-auto md:max-h-[95vh] bg-white dark:bg-neutral-950 md:rounded-[1.2rem] overflow-y-auto shadow-2xl relative"
-      >
+      ref={modalRef}
+      className="w-full max-w-lg h-auto max-h-full md:max-h-[95vh] bg-white dark:bg-neutral-950 md:rounded-[1.2rem] overflow-y-auto shadow-2xl relative"
+         >
         {/* Header */}
         <div className="sticky top-0 z-20 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md px-4 py-2 flex items-center justify-between border-b border-neutral-100 dark:border-neutral-900">
           <button onClick={onClose} className="text-black dark:text-white p-2">
@@ -176,7 +176,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
           </div>
         </div>
 
-        <div className="p-4 md:p-5 flex flex-col">
+        <div className="p-4 pb-0 md:p-5 md:pb-0 flex flex-col">
           {/* Seccion Producto e Info */}
           <div className="flex gap-4 items-start mb-3">
             <div className="w-20 h-20 md:w-28 md:h-28 bg-white rounded-lg border border-neutral-100 shadow-sm flex items-center justify-center p-1.5 shrink-0">
@@ -299,7 +299,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
           </div>
 
           {/* Boton Fijo */}
-          <div className="w-full sticky bottom-0 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md pb-2 pt-1">
+            <div className="w-full sticky bottom-0 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md pt-2 pb-6 md:pb-4 px-4">
             <button 
               onClick={() => onFavoriteToggle(product.id)} 
               className={`w-full py-3.5 rounded-lg font-black uppercase tracking-[0.1em] text-xs flex items-center justify-center gap-2 active:scale-95 transition-all ${isFavorite ? 'bg-star-gold text-white' : 'bg-black dark:bg-white text-white dark:text-black'}`}
