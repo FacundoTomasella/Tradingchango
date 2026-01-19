@@ -255,7 +255,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
                       </linearGradient>
                     </defs>
                     <CartesianGridComponent vertical={false} strokeDasharray="3 3" stroke={theme === 'dark' ? '#233138' : '#f0f0f0'} />
-                    <XAxisComponent dataKey="date" tickLine={false} axisLine={false} interval="preserveStartEnd" tick={{ fontSize: 8, fill: theme === 'dark' ? '#8696a0' : '#737373' }} />
+                    <XAxisComponent dataKey="date" tickLine={false} axisLine={false} interval={0} tick={{ fontSize: 8, fill: theme === 'dark' ? '#8696a0' : '#737373' }} tickFormatter={(value: string, index: number) => { const total = chartData.length; if (total === 0) return ''; const middle = Math.floor(total / 2); if (index === 0 || index === middle || index === total - 1) { return value; } return ''; }} />
                     <YAxisComponent orientation="right" width={36} axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: theme === 'dark' ? '#8696a0' : '#737373' }} domain={['auto', 'auto']} tickFormatter={(val: number) => `$${formatCurrency(val)}`} />
                     <TooltipComponent content={<CustomTooltip />} />
                     <AreaComponent type="monotone" dataKey="price" stroke={trendColor} strokeWidth={2} fill="url(#colorPrice)" />
