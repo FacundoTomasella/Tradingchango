@@ -124,5 +124,12 @@
 <body class="bg-white dark:bg-[#0b141a] text-[#131722] dark:text-[#e9edef]">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+</script>
 </body>
 </html>
