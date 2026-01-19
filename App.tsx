@@ -339,6 +339,7 @@ const App: React.FC = () => {
         trendFilter={trendFilter} setTrendFilter={setTrendFilter} 
         showHero={currentTab === 'home' && !searchTerm && !trendFilter}
         onNavigate={navigateTo} currentTab={currentTab}
+        hideSearch={['about', 'terms', 'contact'].includes(currentTab)}
       />
       <main>
         {['home', 'carnes', 'verdu', 'varios', 'favs'].includes(currentTab) ? (
