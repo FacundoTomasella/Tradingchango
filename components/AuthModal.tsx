@@ -158,7 +158,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
         setTimeout(() => {
            if (onProfileUpdate) onProfileUpdate();
            // Opcional: cerrar el modal después del login exitoso
-           onClose(); 
+           
         }, 1000);
       }
     } catch (err: any) {
@@ -326,5 +326,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
     </div>
   );
 };
+
 
 export default AuthModal;
