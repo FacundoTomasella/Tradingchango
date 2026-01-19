@@ -89,7 +89,7 @@ const App: React.FC = () => {
       // Forzamos la aparición del botón después de 1 segundo
       setTimeout(() => {
         setShowPwaPill(true);
-      }, 1000);
+      }, 2000);
     }
   };
 
