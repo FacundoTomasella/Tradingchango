@@ -106,6 +106,7 @@ const App: React.FC = () => {
   const navigateTo = (tab: TabType) => {
     window.location.hash = tab;
     setCurrentTab(tab);
+    setSearchTerm('');
   };
 
   const loadData = useCallback(async (sessionUser: User | null) => {
