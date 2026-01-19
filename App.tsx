@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-// Importamos solo lo necesario, si User o Session fallan, usaremos 'any' o los tipos de Supabase
+import { User } from '@supabase/supabase-js';
 import { supabase, getProducts, getPriceHistory, getProfile, getConfig, getBenefits, getSavedCartData, saveCartData } from './services/supabase';
 import { Product, PriceHistory, Profile, TabType, ProductStats, Benefit } from './types';
 import Header from './components/Header';
@@ -15,7 +15,7 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [history, setHistory] = useState<PriceHistory[]>([]);
   const [config, setConfig] = useState<Record<string, string>>({});
-  const [user, setUser] = useState<any>(null); // Usamos any para evitar errores de importación de tipos
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [benefits, setBenefits] = useState<Benefit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,20 +33,84 @@ const App: React.FC = () => {
     (localStorage.getItem('theme') as 'light' | 'dark') || 'light'
   );
 
-  // 1. CARGAR FAVORITOS LOCALES AL EMPEZAR
+  // 1. Cargar datos locales al montar la app
   useEffect(() => {
-    const savedLocalFavs = localStorage.getItem('local_favorites');
-    if (savedLocalFavs) {
-      try {
-        setFavorites(JSON.parse(savedLocalFavs));
-      } catch (e) {
-        console.error("Error cargando favoritos locales", e);
-      }
+    const localFavs = localStorage.getItem('guest_favorites');
+    if (localFavs) {
+      setFavorites(JSON.parse(localFavs));
     }
   }, []);
 
-  // 2. MANEJO DE SESIÓN Y DATOS (Versión compatible)
-  const loadData = useCallback(async (sessionUser: any) => {
+
+  useEffect(() => {
+  const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
+
+  if (savedTheme === 'dark') {
+    document.documentElement.classList.add('dark');
+    setTheme('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+    setTheme('light');
+  }
+
+  const handleHash = () => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash.startsWith('product/')) {
+      const id = parseInt(hash.split('/')[1]);
+      if (!isNaN(id)) setSelectedProductId(id);
+    } else if (['about', 'terms', 'contact', 'home', 'carnes', 'verdu', 'varios', 'favs'].includes(hash)) {
+      setCurrentTab(hash as TabType);
+      setSelectedProductId(null);
+    } else if (!hash) {
+      window.location.hash = 'home';
+    }
+  };
+
+  window.addEventListener('hashchange', handleHash);
+  handleHash();
+  return () => window.removeEventListener('hashchange', handleHash);
+}, []);
+
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (!isStandalone && isMobile) {
+        setTimeout(() => setShowPwaPill(true), 2000);
+      }
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      setShowPwaPill(false);
+    }
+  };
+
+  const navigateTo = (tab: TabType) => {
+    window.location.hash = tab;
+    setCurrentTab(tab);
+  };
+
+  const loadData = useCallback(async (sessionUser: User | null) => {
     try {
       setLoading(true);
       const [prodData, histData, configData] = await Promise.all([
@@ -59,127 +123,73 @@ const App: React.FC = () => {
       setConfig(configData || {});
 
       if (sessionUser) {
-        let prof = await getProfile(sessionUser.id);
+        let prof = await getProfile(sessionUser.id); // Cambié const por let para poder editarlo
+
+        // --- INICIO CAMBIO AQUÍ: VERIFICACIÓN Y ACTUALIZACIÓN FÍSICA ---
         if (prof && prof.subscription === 'pro' && prof.subscription_end) {
-          if (new Date(prof.subscription_end) < new Date()) {
-            await supabase.from('perfiles').update({ subscription: 'free' }).eq('id', sessionUser.id);
+          const expiryDate = new Date(prof.subscription_end);
+          const today = new Date();
+
+          if (expiryDate < today) {
+            // 1. Actualizar físicamente la base de datos
+            await supabase
+              .from('perfiles')
+              .update({ subscription: 'free' })
+              .eq('id', sessionUser.id);
+            
+            // 2. Actualizar el objeto local para que la App ya lo vea como FREE
             prof = { ...prof, subscription: 'free' };
           }
         }
-        setProfile(prof);
+        // --- FIN CAMBIO ---
 
+        setProfile(prof);
         const cartData = await getSavedCartData(sessionUser.id);
         if (cartData) {
-          // Si el usuario tiene favoritos en la nube, los combinamos con los locales
-          // o priorizamos los de la nube
-          if (cartData.active && Object.keys(cartData.active).length > 0) {
-            setFavorites(cartData.active);
-          }
+          setFavorites(cartData.active || {});
           setSavedCarts(cartData.saved || []);
         }
       }
       
-      const benefitData = await getBenefits(new Date().getDay());
+      const day = new Date().getDay();
+      const benefitData = await getBenefits(day);
       setBenefits(benefitData);
-    } catch (err) {
-      console.error("Error loading data:", err);
-    } finally {
+      setLoading(false);
+    } catch (err: any) {
+      console.error("Error loading app data:", err);
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    // Usamos (supabase.auth as any) para saltar errores de tipos si la librería está dando problemas
-    const auth = supabase.auth as any;
-
-    auth.getSession?.().then(({ data: { session } }: any) => {
-      const sUser = session?.user ?? null;
-      setUser(sUser);
-      loadData(sUser);
-    }) || auth.session?.() && loadData(auth.session().user); // Compatibilidad v1/v2
-
-    const { data: authListener } = auth.onAuthStateChange((_event: string, session: any) => {
-      const sUser = session?.user ?? null;
-      setUser(sUser);
-      if (_event === 'SIGNED_IN') loadData(sUser);
-      if (_event === 'SIGNED_OUT') {
-        setProfile(null);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const sessionUser = session?.user ?? null;
+      setUser(sessionUser);
+      loadData(sessionUser);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const sessionUser = session?.user ?? null;
+      setUser(sessionUser);
+      if (_event === 'SIGNED_IN') loadData(sessionUser);
+      else if (_event === 'SIGNED_OUT') { 
+        setProfile(null); 
         setSavedCarts([]);
         setPurchasedItems(new Set());
-        // Al salir, mantenemos los favoritos que estaban (ahora son locales)
       }
     });
-
-    return () => {
-      if (authListener?.subscription) authListener.subscription.unsubscribe();
-      else if (authListener) (authListener as any).unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [loadData]);
 
-  // 3. GUARDADO AUTOMÁTICO (Local y Nube)
   useEffect(() => {
-    // Guardar siempre en LocalStorage (para que persista sin cuenta)
-    localStorage.setItem('local_favorites', JSON.stringify(favorites));
-
-    // Si hay usuario, sincronizar con la nube
+     localStorage.setItem('guest_favorites', JSON.stringify(favorites));
     if (user) {
       const dataToSave = { active: favorites, saved: savedCarts };
       saveCartData(user.id, dataToSave).catch(console.error);
     }
   }, [favorites, savedCarts, user]);
 
-  // 4. LÓGICA DE FAVORITOS (Sin obligación de login para agregar)
-  const toggleFavorite = (id: number) => {
-    setFavorites(prev => {
-      const next = { ...prev };
-      if (next[id]) {
-        delete next[id];
-      } else {
-        // Límite de 5 solo si está logueado y es FREE
-        const count = Object.keys(prev).length;
-        const isPro = profile?.subscription === 'pro';
-        if (user && !isPro && count >= 5) {
-          alert('Límite de 5 productos para usuarios Free. ¡Pásate a PRO!');
-          return prev;
-        }
-        next[id] = 1;
-      }
-      return next;
-    });
-  };
-
-  // --- El resto de funciones (handleFavoriteChangeInCart, etc.) se mantienen igual ---
-
-  const handleFavoriteChangeInCart = (id: number, delta: number) => {
-    setFavorites(prev => {
-      const newQty = (prev[id] || 1) + delta;
-      if (newQty <= 0) {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      }
-      return { ...prev, [id]: newQty };
-    });
-  };
-
-  const handleSignOut = async () => {
-    await (supabase.auth as any).signOut();
-    setUser(null);
-    setProfile(null);
-    setSavedCarts([]);
-    setPurchasedItems(new Set());
-    setIsAuthOpen(false);
-    navigateTo('home');
-  };
-
-  const navigateTo = (tab: TabType) => {
-    window.location.hash = tab;
-    setCurrentTab(tab);
-  };
-
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  // Funciones de renderizado y lógica de productos...
   const getStats = (p: number[], h: number): ProductStats => {
     const v = p.filter(x => x > 0);
     if (v.length === 0) return { min: 0, spread: '0.0', trendClass: '', icon: '-', isUp: false, isDown: false };
@@ -192,6 +202,13 @@ const App: React.FC = () => {
     }
     return { min, spread: Math.abs(diff).toFixed(1), trendClass: tc, icon, isUp, isDown };
   };
+
+  /** LOGICA DE SUSCRIPCION PRO **/
+  const isPro = useMemo(() => {
+    if (!profile || profile.subscription !== 'pro') return false;
+    // Comprueba si la fecha de vencimiento es posterior a hoy
+    return profile.subscription_end ? new Date(profile.subscription_end) > new Date() : false;
+  }, [profile]);
 
   const filteredProducts = useMemo(() => {
     let result = products.map(p => {
@@ -214,10 +231,95 @@ const App: React.FC = () => {
     return result;
   }, [products, history, currentTab, searchTerm, trendFilter, favorites]);
 
-  if (loading && products.length === 0) return <div className="min-h-screen flex items-center justify-center dark:bg-primary dark:text-white">Cargando...</div>;
+  const toggleFavorite = (id: number) => {
+    if (!user) {
+      setIsAuthOpen(true);
+      return;
+    }
+
+    const favoritesCount = Object.keys(favorites).length;
+
+    // APLICA EL LIMITE SI NO ES PRO
+    if (!isPro && favoritesCount >= 5 && !favorites[id]) {
+      alert('Los usuarios FREE solo pueden tener hasta 5 productos en favoritos.');
+      return;
+    }
+
+    setFavorites(prev => {
+      const next = { ...prev };
+      if (next[id]) {
+        delete next[id];
+        const newPurchased = new Set(purchasedItems);
+        newPurchased.delete(id);
+        setPurchasedItems(newPurchased);
+      } else {
+        next[id] = 1;
+      }
+      return next;
+    });
+  };
+
+  const handleFavoriteChangeInCart = (id: number, delta: number) => {
+    setFavorites(prev => {
+      const newQty = (prev[id] || 1) + delta;
+      if (newQty <= 0) {
+        const next = { ...prev };
+        delete next[id];
+        setPurchasedItems(p => {
+          const newP = new Set(p);
+          newP.delete(id);
+          return newP;
+        });
+        return next;
+      }
+      return { ...prev, [id]: newQty };
+    });
+  };
+
+  const togglePurchased = (id: number) => {
+    const newPurchased = new Set(purchasedItems);
+    if (newPurchased.has(id)) newPurchased.delete(id);
+    else newPurchased.add(id);
+    setPurchasedItems(newPurchased);
+  };
+
+  const handleSaveCurrentCart = (name: string) => {
+    if (savedCarts.length >= 2) return;
+    setSavedCarts([...savedCarts, { name, items: { ...favorites }, date: new Date().toISOString() }]);
+  };
+
+  const handleDeleteSavedCart = (index: number) => {
+    const next = [...savedCarts];
+    next.splice(index, 1);
+    setSavedCarts(next);
+  };
+
+  const handleLoadSavedCart = (index: number) => {
+    setFavorites(savedCarts[index].items);
+    setPurchasedItems(new Set());
+    navigateTo('favs');
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
+    setFavorites({});
+    setSavedCarts([]);
+    setPurchasedItems(new Set());
+    setIsAuthOpen(false);
+    navigateTo('home');
+  };
+
+  if (loading && products.length === 0) return <div className="min-h-screen flex items-center justify-center dark:bg-black dark:text-white font-mono text-[11px] uppercase tracking-[0.2em]">Conectando a Mercado...</div>;
 
   return (
-    <div className="max-w-screen-md mx-auto min-h-screen bg-white dark:bg-primary shadow-2xl transition-colors font-sans pb-24">
+    <div className="max-w-screen-md mx-auto min-h-screen bg-white dark:bg-black shadow-2xl transition-colors font-sans pb-24">
+      {showPwaPill && (
+        <div onClick={handleInstallClick} className="fixed bottom-[80px] left-1/2 -translate-x-1/2 z-[1000] bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-full flex items-center gap-2 shadow-2xl cursor-pointer">
+          <span className="text-[10px] font-[800] uppercase tracking-wider">Instalar App 🛒</span>
+        </div>
+      )}
       <Header 
         searchTerm={searchTerm} setSearchTerm={setSearchTerm} 
         toggleTheme={toggleTheme} theme={theme}
@@ -236,11 +338,11 @@ const App: React.FC = () => {
                 favorites={favorites} 
                 benefits={benefits} 
                 userMemberships={profile?.membresias} 
-                onSaveCart={(name) => setSavedCarts([...savedCarts, { name, items: { ...favorites }, date: new Date().toISOString() }])}
+                onSaveCart={handleSaveCurrentCart}
                 canSave={!!user && savedCarts.length < 2}
                 savedCarts={savedCarts}
-                onLoadCart={(idx) => setFavorites(savedCarts[idx].items)}
-                onDeleteCart={(idx) => setSavedCarts(savedCarts.filter((_, i) => i !== idx))}
+                onLoadCart={handleLoadSavedCart}
+                onDeleteCart={handleDeleteSavedCart}
               />
             )}
             <ProductList 
@@ -253,29 +355,30 @@ const App: React.FC = () => {
               onUpdateQuantity={handleFavoriteChangeInCart}
               searchTerm={searchTerm}
               purchasedItems={purchasedItems}
-              onTogglePurchased={(id) => {
-                const newP = new Set(purchasedItems);
-                if (newP.has(id)) newP.delete(id); else newP.add(id);
-                setPurchasedItems(newP);
-              }}
+              onTogglePurchased={togglePurchased}
             />
           </>
         ) : (
           <div className="animate-in fade-in duration-500">
             {currentTab === 'about' && <AboutView onClose={() => navigateTo('home')} content={config.acerca_de} />}
             {currentTab === 'terms' && <TermsView onClose={() => navigateTo('home')} content={config.terminos} />}
-            {currentTab === 'contact' && <ContactView onClose={() => navigateTo('home')} content={config.contacto} email={profile?.email || ''} />}
+            {currentTab === 'contact' && <ContactView onClose={() => navigateTo('home')} content={config.contacto} email={profile?.email} />}
           </div>
         )}
       </main>
       <BottomNav currentTab={currentTab} setCurrentTab={navigateTo} cartCount={Object.keys(favorites).length} />
       {selectedProductId && <ProductDetail productId={selectedProductId} onClose={() => navigateTo(currentTab)} onFavoriteToggle={toggleFavorite} isFavorite={!!favorites[selectedProductId]} products={products} theme={theme} />}
       {isAuthOpen && <AuthModal 
-        isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} user={user} profile={profile} onSignOut={handleSignOut} 
-        onProfileUpdate={() => loadData(user)} savedCarts={savedCarts}
-        onSaveCart={(name) => setSavedCarts([...savedCarts, { name, items: { ...favorites }, date: new Date().toISOString() }])}
-        onDeleteCart={(idx) => setSavedCarts(savedCarts.filter((_, i) => i !== idx))}
-        onLoadCart={(idx) => setFavorites(savedCarts[idx].items)}
+        isOpen={isAuthOpen} 
+        onClose={() => setIsAuthOpen(false)} 
+        user={user} 
+        profile={profile} 
+        onSignOut={handleSignOut} 
+        onProfileUpdate={() => loadData(user)}
+        savedCarts={savedCarts}
+        onSaveCart={handleSaveCurrentCart}
+        onDeleteCart={handleDeleteSavedCart}
+        onLoadCart={handleLoadSavedCart}
         currentActiveCartSize={Object.keys(favorites).length}
       />}
       <Footer />
