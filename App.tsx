@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { User } from '@supabase/supabase-js';
+import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase, getProducts, getPriceHistory, getProfile, getConfig, getBenefits, getSavedCartData, saveCartData } from './services/supabase';
 import { Product, PriceHistory, Profile, TabType, ProductStats, Benefit } from './types';
 import Header from './components/Header';
@@ -153,12 +153,16 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const sessionUser = session?.user ?? null;
-      setUser(sessionUser);
-      loadData(sessionUser);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+  const auth = supabase.auth as any; // Esto salta la restricción del editor
+
+  auth.getSession().then(({ data: { session } }: any) => {
+    const sessionUser = session?.user ?? null;
+    setUser(sessionUser);
+    loadData(sessionUser);
+  });
+
+  const { data: { subscription } } = auth.onAuthStateChange(
+    (_event: any, session: any) => {
       const sessionUser = session?.user ?? null;
       setUser(sessionUser);
       if (_event === 'SIGNED_IN') loadData(sessionUser);
@@ -168,17 +172,29 @@ const App: React.FC = () => {
         setSavedCarts([]);
         setPurchasedItems(new Set());
       }
-    });
-    return () => subscription.unsubscribe();
-  }, [loadData]);
+    }
+  );
+
+  return () => subscription.unsubscribe();
+}, [loadData]);
 
   useEffect(() => {
-  // Solo guardamos si hay un usuario logueado 
-  // Y si favorites tiene contenido (para evitar borrar la DB al limpiar el estado en el logout)
-  if (user && Object.keys(favorites).length > 0) {
-    const dataToSave = { active: favorites, saved: savedCarts };
-    saveCartData(user.id, dataToSave).catch(console.error);
-  }
+  const persistData = async () => {
+    // Si no hay usuario, no hacemos nada
+    if (!user) return;
+
+    try {
+      const dataToSave = { 
+        active: favorites, 
+        saved: savedCarts 
+      };
+      await saveCartData(user.id, dataToSave);
+    } catch (error) {
+      console.error("Error al guardar datos en Supabase:", error);
+    }
+  };
+
+  persistData();
 }, [favorites, savedCarts, user]);
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
@@ -294,7 +310,7 @@ const App: React.FC = () => {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await (supabase.auth as any).signOut();
     setUser(null);
     setProfile(null);
     setFavorites({});

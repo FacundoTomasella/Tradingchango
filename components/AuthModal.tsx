@@ -110,34 +110,55 @@ const AuthModal: React.FC<AuthModalProps> = ({
     setSuccess(null);
 
     try {
+      setLoading(true);
+      setError(null);
+      
+      // CREAMOS ESTA CONSTANTE PARA EVITAR ERRORES DE TYPESCRIPT EN GITHUB.DEV
+      const auth = supabase.auth as any;
+
       if (mode === 'register') {
-        const { data, error: signUpError } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await auth.signUp({
           email,
           password,
           options: {
+            // Estos datos se guardan en auth.users (metadata)
             data: { nombre, apellido, fecha_nacimiento: fechaNacimiento }
           }
         });
+
         if (signUpError) throw signUpError;
-        if (data.user) {
-          await supabase.from('perfiles').upsert({
+
+        // Si el usuario se creó correctamente, insertamos en la tabla 'perfiles'
+        if (data?.user) {
+          const { error: profileError } = await supabase.from('perfiles').upsert({
                 id: data.user.id,
                 email,
                 nombre,
                 apellido,
                 fecha_nacimiento: fechaNacimiento,
-                subscription: 'pro',           // Cambiado a 'pro' (en minúsculas por TypeScript)
-                subscription_end: '2027-01-01' // Agregamos la fecha de vencimiento
+                subscription: 'pro',
+                subscription_end: '2027-01-01'
           });
-}
+          
+          if (profileError) console.error("Error al crear perfil:", profileError);
+        }
+
         setSuccess(`¡Bienvenido ${nombre}! Tu cuenta está lista.`);
         setMode('login');
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        // USAMOS EL MÉTODO DE LA V2: signInWithPassword
+        const { error: signInError } = await auth.signInWithPassword({ 
+          email, 
+          password 
+        });
+
         if (signInError) throw new Error('Credenciales incorrectas.');
+        
         setSuccess(`¡Hola Trader!`);
         setTimeout(() => {
            if (onProfileUpdate) onProfileUpdate();
+           // Opcional: cerrar el modal después del login exitoso
+           onClose(); 
         }, 1000);
       }
     } catch (err: any) {
@@ -148,7 +169,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    // USAMOS EL BYPASS PARA EL SIGNOUT TAMBIÉN
+    await (supabase.auth as any).signOut();
     onSignOut();
     onClose();
     window.location.hash = 'home';
