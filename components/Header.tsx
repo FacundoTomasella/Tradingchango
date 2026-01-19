@@ -91,8 +91,7 @@ const Header: React.FC<HeaderProps> = ({
 
       {/* ÁREA DE BÚSQUEDA Y FILTROS */}
       {!hideSearch && (
-        <div className="relative mb-3">
-          <div className="relative flex-1 max-w-md"> 
+        <div className="relative mb-2 max-w-2xl mx-auto w-full px-2">
             <i className="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500"></i>
             <input 
               type="text" 
