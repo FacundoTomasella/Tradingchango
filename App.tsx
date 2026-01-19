@@ -73,19 +73,30 @@ const App: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (!isStandalone && isMobile) {
-        setTimeout(() => setShowPwaPill(true), 2000);
-      }
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
+ useEffect(() => {
+  const handleBeforeInstallPrompt = (e: any) => {
+    console.log("Evento de instalación capturado");
+    // 1. Prevenimos el cartel por defecto de Chrome
+    e.preventDefault();
+    // 2. Guardamos el evento para usarlo luego
+    setDeferredPrompt(e);
+    
+    // 3. Verificamos si ya está instalada
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+                         || (navigator as any).standalone === true;
+
+    if (!isStandalone) {
+      // Forzamos la aparición del botón después de 1 segundo
+      setTimeout(() => {
+        setShowPwaPill(true);
+      }, 1000);
+    }
+  };
+
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+  return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+}, []);
 
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark');
