@@ -366,7 +366,7 @@ const App: React.FC = () => {
             TradingChango
           </span>
           <span className="text-[8px] font-bold opacity-70 uppercase tracking-widest leading-none">
-            App Gratis
+            El súper en tiempo real
           </span>
         </div>
       </div>
