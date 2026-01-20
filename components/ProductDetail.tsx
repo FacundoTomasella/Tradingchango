@@ -57,6 +57,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
 
   useEffect(() => {
     if (product) {
+      document.title = `${product.nombre} - TradingChango`;
       getProductHistory(product.nombre, 365)
         .then(data => setHistory(data || []))
         .catch(() => setHistory([]));

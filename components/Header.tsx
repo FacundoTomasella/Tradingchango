@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TabType, Profile } from '../types';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 interface HeaderProps {
   searchTerm: string;
@@ -11,10 +12,6 @@ interface HeaderProps {
   profile: Profile | null;
   trendFilter: 'up' | 'down' | null;
   setTrendFilter: (val: 'up' | 'down' | null) => void;
-  showHero: boolean;
-  onNavigate: (tab: TabType) => void;
-  currentTab: TabType;
-  hideSearch?: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -27,13 +24,14 @@ const Header: React.FC<HeaderProps> = ({
   profile,
   trendFilter,
   setTrendFilter,
-  showHero,
-  onNavigate,
-  currentTab,
-  hideSearch // <--- AGREGADO AQUÍ
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const showHero = location.pathname === '/' && !searchTerm && !trendFilter;
+  const hideSearch = ['/about', '/terms', '/contact'].includes(location.pathname);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -50,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-primary p-4 border-b border-neutral-100 dark:border-[#233138]">
       <div className="flex justify-between items-center mb-4">
-        <div className="logo-link cursor-pointer" onClick={() => onNavigate('home')}>
+        <Link to="/" className="logo-link cursor-pointer">
           <div className="logo">
             <div className="logo-icon-wrapper">
                <i className="fa-solid fa-cart-shopping" style={{ fontSize: '18px' }}></i>
@@ -58,13 +56,13 @@ const Header: React.FC<HeaderProps> = ({
             </div>
             TradingChango
           </div>
-        </div>
+        </Link>
 
         <div className="flex items-center gap-3">
           <div className="hidden md:flex items-center gap-4 mr-2">
-            <button onClick={() => onNavigate('about')} className="text-[11px] font-bold uppercase tracking-widest text-black dark:text-[#e9edef] hover:opacity-70 transition-colors">Acerca de</button>
-            <button onClick={() => onNavigate('terms')} className="text-[11px] font-bold uppercase tracking-widest text-black dark:text-[#e9edef] hover:opacity-70 transition-colors">Términos</button>
-            <button onClick={() => onNavigate('contact')} className="text-[11px] font-bold uppercase tracking-widest text-black dark:text-[#e9edef] hover:opacity-70 transition-colors">Contacto</button>
+            <Link to="/about" className="text-[11px] font-bold uppercase tracking-widest text-black dark:text-[#e9edef] hover:opacity-70 transition-colors">Acerca de</Link>
+            <Link to="/terms" className="text-[11px] font-bold uppercase tracking-widest text-black dark:text-[#e9edef] hover:opacity-70 transition-colors">Términos</Link>
+            <Link to="/contact" className="text-[11px] font-bold uppercase tracking-widest text-black dark:text-[#e9edef] hover:opacity-70 transition-colors">Contacto</Link>
           </div>
 
           <div className="relative md:hidden" ref={menuRef}>
@@ -73,9 +71,9 @@ const Header: React.FC<HeaderProps> = ({
             </button>
             {isMenuOpen && (
               <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#1f2c34] border border-neutral-200 dark:border-[#233138] rounded-xl shadow-xl p-1 z-50 animate-in fade-in zoom-in duration-200">
-                <button onClick={() => { onNavigate('about'); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-[11px] font-bold uppercase dark:text-[#e9edef] hover:bg-neutral-50 dark:hover:bg-[#233138] rounded-lg">Acerca de</button>
-                <button onClick={() => { onNavigate('terms'); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-[11px] font-bold uppercase dark:text-[#e9edef] hover:bg-neutral-50 dark:hover:bg-[#233138] rounded-lg">Términos</button>
-                <button onClick={() => { onNavigate('contact'); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-[11px] font-bold uppercase dark:text-[#e9edef] hover:bg-neutral-50 dark:hover:bg-[#233138] rounded-lg">Contacto</button>
+                <Link to="/about" onClick={() => setIsMenuOpen(false)} className="block w-full text-left px-4 py-3 text-[11px] font-bold uppercase dark:text-[#e9edef] hover:bg-neutral-50 dark:hover:bg-[#233138] rounded-lg">Acerca de</Link>
+                <Link to="/terms" onClick={() => setIsMenuOpen(false)} className="block w-full text-left px-4 py-3 text-[11px] font-bold uppercase dark:text-[#e9edef] hover:bg-neutral-50 dark:hover:bg-[#233138] rounded-lg">Términos</Link>
+                <Link to="/contact" onClick={() => setIsMenuOpen(false)} className="block w-full text-left px-4 py-3 text-[11px] font-bold uppercase dark:text-[#e9edef] hover:bg-neutral-50 dark:hover:bg-[#233138] rounded-lg">Contacto</Link>
               </div>
             )}
           </div>
@@ -111,7 +109,7 @@ const Header: React.FC<HeaderProps> = ({
   </div>
 )}
 
-      {!['favs', 'about', 'terms', 'contact'].includes(currentTab) && (
+      {!['/favs', '/about', '/terms', '/contact'].includes(location.pathname) && (
         <div className="flex gap-2">
           <button 
             onClick={() => setTrendFilter(trendFilter === 'down' ? null : 'down')} 

@@ -10,6 +10,16 @@ import AuthModal from './components/AuthModal';
 import CartSummary from './components/CartSummary';
 import Footer from './components/Footer';
 import { AboutView, TermsView, ContactView } from './components/InfoViews';
+import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
+
+
+const slugify = (text: string) => {
+  return text.toString().toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')     // Espacios por guiones
+    .replace(/[^\w-]+/g, '')  // Quitar caracteres raros
+    .replace(/--+/g, '-');    // Quitar guiones dobles
+};
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -44,6 +54,10 @@ const App: React.FC = () => {
   );
 
   const isInitialMount = useRef(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const navigateTo = (path: string) => navigate(path === 'home' ? '/' : '/' + path.replace('/', ''));
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
@@ -54,23 +68,6 @@ const App: React.FC = () => {
       document.documentElement.classList.remove('dark');
       setTheme('light');
     }
-
-    const handleHash = () => {
-      const hash = window.location.hash.replace('#', '');
-      if (hash.startsWith('product/')) {
-        const id = parseInt(hash.split('/')[1]);
-        if (!isNaN(id)) setSelectedProductId(id);
-      } else if (['about', 'terms', 'contact', 'home', 'carnes', 'verdu', 'varios', 'favs'].includes(hash)) {
-        setCurrentTab(hash as TabType);
-        setSelectedProductId(null);
-      } else if (!hash) {
-        window.location.hash = 'home';
-      }
-    };
-
-    window.addEventListener('hashchange', handleHash);
-    handleHash();
-    return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
  useEffect(() => {
@@ -112,12 +109,6 @@ const App: React.FC = () => {
       setDeferredPrompt(null);
       setShowPwaPill(false);
     }
-  };
-
-  const navigateTo = (tab: TabType) => {
-    window.location.hash = tab;
-    setCurrentTab(tab);
-    setSearchTerm('');
   };
 
   const loadData = useCallback(async (sessionUser: User | null) => {
@@ -189,14 +180,13 @@ const App: React.FC = () => {
   }, [loadData]);
 
   // --- MODIFICACIÓN: PERSISTENCIA HÍBRIDA (LOCAL + NUBE) ---
-  useEffect(() => {
-    if (!user || loading) return;
+useEffect(() => {
+  // 1. Guardado INSTANTÁNEO en LocalStorage (Sin delay para evitar pérdida al minimizar)
+  localStorage.setItem('tc_favs', JSON.stringify(favorites));
+  localStorage.setItem('tc_saved_lists', JSON.stringify(savedCarts));
 
-    // 1. Guardado Instantáneo en LocalStorage (Evita pérdida al minimizar)
-    localStorage.setItem('tc_favs', JSON.stringify(favorites));
-    localStorage.setItem('tc_saved_lists', JSON.stringify(savedCarts));
-
-    // 2. Sincronización con Supabase con Debounce (1.5s)
+  // 2. Sincronización con Supabase (Solo esto lleva delay)
+  if (user && !loading) {
     const timer = setTimeout(async () => {
       try {
         const dataToSave = { active: favorites, saved: savedCarts };
@@ -205,9 +195,9 @@ const App: React.FC = () => {
         console.error("Error persistiendo datos en la nube:", e);
       }
     }, 1500);
-
     return () => clearTimeout(timer);
-  }, [favorites, savedCarts, user, loading]);
+  }
+}, [favorites, savedCarts, user, loading]);
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
@@ -230,25 +220,26 @@ const App: React.FC = () => {
   }, [profile]);
 
   const filteredProducts = useMemo(() => {
+    const currentPath = location.pathname;
     let result = products.map(p => {
       const prices = [p.p_coto, p.p_carrefour, p.p_dia, p.p_jumbo, p.p_masonline];
       const h7 = history.find(h => h.nombre_producto === p.nombre);
       return { ...p, stats: getStats(prices, h7?.precio_minimo || 0), prices };
     });
-    if (currentTab === 'carnes') result = result.filter(p => p.categoria?.toLowerCase().includes('carne'));
-    else if (currentTab === 'verdu') result = result.filter(p => p.categoria?.toLowerCase().includes('verdu') || p.categoria?.toLowerCase().includes('fruta'));
-    else if (currentTab === 'varios') result = result.filter(p => !p.categoria?.toLowerCase().includes('carne') && !p.categoria?.toLowerCase().includes('verdu'));
-    else if (currentTab === 'favs') result = result.filter(p => favorites[p.id]);
+    if (currentPath === '/carnes') result = result.filter(p => p.categoria?.toLowerCase().includes('carne'));
+    else if (currentPath === '/verdu') result = result.filter(p => p.categoria?.toLowerCase().includes('verdu') || p.categoria?.toLowerCase().includes('fruta'));
+    else if (currentPath === '/varios') result = result.filter(p => !p.categoria?.toLowerCase().includes('carne') && !p.categoria?.toLowerCase().includes('verdu'));
+    else if (currentPath === '/favs') result = result.filter(p => favorites[p.id]);
 
     if (searchTerm) {
       const t = searchTerm.toLowerCase();
       result = result.filter(p => p.nombre.toLowerCase().includes(t) || (p.ticker && p.ticker.toLowerCase().includes(t)));
     }
-    if (trendFilter && currentTab !== 'favs') {
+    if (trendFilter && currentPath !== '/favs') {
       result = result.filter(p => trendFilter === 'up' ? p.stats.isUp : p.stats.isDown);
     }
     return result;
-  }, [products, history, currentTab, searchTerm, trendFilter, favorites]);
+  }, [products, history, location.pathname, searchTerm, trendFilter, favorites]);
 
   const toggleFavorite = (id: number) => {
     if (!user) {
@@ -313,7 +304,7 @@ const App: React.FC = () => {
   const handleLoadSavedCart = (index: number) => {
     setFavorites(savedCarts[index].items);
     setPurchasedItems(new Set());
-    navigateTo('favs');
+    navigate('/favs');
   };
 
   const handleSignOut = async () => {
@@ -331,10 +322,33 @@ const App: React.FC = () => {
     setPurchasedItems(new Set());
     setIsAuthOpen(false);
     setLoading(false);
-    navigateTo('home');
+    navigate('/');
   };
 
   if (loading && products.length === 0) return <div className="min-h-screen flex items-center justify-center dark:bg-primary dark:text-white font-mono text-[11px] uppercase tracking-[0.2em]">Conectando a Mercado...</div>;
+  
+  const ProductDetailWrapper = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const product = products.find(p => p.id === Number(id));
+  
+    if (!product) {
+      // Si el producto no se encuentra, redirigir a la home.
+      // Esto puede pasar si se accede a una URL de producto directamente antes de que los productos se carguen.
+      return <Navigate to="/" replace />;
+    }
+  
+    return (
+      <ProductDetail
+        productId={product.id}
+        onClose={() => navigate(-1)} // Volver a la página anterior
+        onFavoriteToggle={toggleFavorite}
+        isFavorite={!!favorites[product.id]}
+        products={products}
+        theme={theme}
+      />
+    );
+  };
 
   return (
   <div className="max-w-screen-md mx-auto min-h-screen bg-white dark:bg-primary shadow-2xl transition-colors font-sans pb-16">
@@ -387,50 +401,102 @@ const App: React.FC = () => {
         toggleTheme={toggleTheme} theme={theme}
         onUserClick={() => setIsAuthOpen(true)} user={user}
         profile={profile}
-        trendFilter={trendFilter} setTrendFilter={setTrendFilter} 
-        showHero={currentTab === 'home' && !searchTerm && !trendFilter}
-        onNavigate={navigateTo} currentTab={currentTab}
-        hideSearch={['about', 'terms', 'contact'].includes(currentTab)}
+        trendFilter={trendFilter} setTrendFilter={setTrendFilter}
       />
       <main>
-        {['home', 'carnes', 'verdu', 'varios', 'favs'].includes(currentTab) ? (
-          <>
-            {currentTab === 'favs' && filteredProducts.length > 0 && (
-              <CartSummary 
-                items={filteredProducts} 
-                favorites={favorites} 
-                benefits={benefits} 
-                userMemberships={profile?.membresias} 
-                onSaveCart={handleSaveCurrentCart}
-                canSave={!!user}
-                savedCarts={savedCarts}
-                onLoadCart={handleLoadSavedCart}
-                onDeleteCart={handleDeleteSavedCart}
-              />
-            )}
+        <Routes>
+          <Route path="/" element={
             <ProductList 
               products={filteredProducts as any} 
-              onProductClick={id => window.location.hash = `product/${id}`}
+              onProductClick={id => navigate(`/product/${id}`)}
               onFavoriteToggle={toggleFavorite} 
               isFavorite={id => !!favorites[id]}
-              isCartView={currentTab === 'favs'} 
+              isCartView={false} 
               quantities={favorites}
               onUpdateQuantity={handleFavoriteChangeInCart}
               searchTerm={searchTerm}
               purchasedItems={purchasedItems}
               onTogglePurchased={togglePurchased}
             />
-          </>
-        ) : (
-          <div className="animate-in fade-in duration-500">
-            {currentTab === 'about' && <AboutView onClose={() => navigateTo('home')} content={config.acerca_de} />}
-            {currentTab === 'terms' && <TermsView onClose={() => navigateTo('home')} content={config.terminos} />}
-            {currentTab === 'contact' && <ContactView onClose={() => navigateTo('home')} content={config.contacto} email={profile?.email} />}
-          </div>
-        )}
+          } />
+          <Route path="/carnes" element={
+            <ProductList 
+              products={filteredProducts as any} 
+              onProductClick={id => navigate(`/product/${id}`)}
+              onFavoriteToggle={toggleFavorite} 
+              isFavorite={id => !!favorites[id]}
+              isCartView={false} 
+              quantities={favorites}
+              onUpdateQuantity={handleFavoriteChangeInCart}
+              searchTerm={searchTerm}
+              purchasedItems={purchasedItems}
+              onTogglePurchased={togglePurchased}
+            />
+          } />
+          <Route path="/verdu" element={
+            <ProductList 
+              products={filteredProducts as any} 
+              onProductClick={id => navigate(`/product/${id}`)}
+              onFavoriteToggle={toggleFavorite} 
+              isFavorite={id => !!favorites[id]}
+              isCartView={false} 
+              quantities={favorites}
+              onUpdateQuantity={handleFavoriteChangeInCart}
+              searchTerm={searchTerm}
+              purchasedItems={purchasedItems}
+              onTogglePurchased={togglePurchased}
+            />
+          } />
+          <Route path="/varios" element={
+            <ProductList 
+              products={filteredProducts as any} 
+              onProductClick={id => navigate(`/product/${id}`)}
+              onFavoriteToggle={toggleFavorite} 
+              isFavorite={id => !!favorites[id]}
+              isCartView={false} 
+              quantities={favorites}
+              onUpdateQuantity={handleFavoriteChangeInCart}
+              searchTerm={searchTerm}
+              purchasedItems={purchasedItems}
+              onTogglePurchased={togglePurchased}
+            />
+          } />
+          <Route path="/favs" element={
+            <>
+              {filteredProducts.length > 0 && (
+                <CartSummary 
+                  items={filteredProducts} 
+                  favorites={favorites} 
+                  benefits={benefits} 
+                  userMemberships={profile?.membresias} 
+                  onSaveCart={handleSaveCurrentCart}
+                  canSave={!!user}
+                  savedCarts={savedCarts}
+                  onLoadCart={handleLoadSavedCart}
+                  onDeleteCart={handleDeleteSavedCart}
+                />
+              )}
+              <ProductList 
+                products={filteredProducts as any} 
+                onProductClick={id => navigate(`/product/${id}`)}
+                onFavoriteToggle={toggleFavorite} 
+                isFavorite={id => !!favorites[id]}
+                isCartView={true} 
+                quantities={favorites}
+                onUpdateQuantity={handleFavoriteChangeInCart}
+                searchTerm={searchTerm}
+                purchasedItems={purchasedItems}
+                onTogglePurchased={togglePurchased}
+              />
+            </>
+          } />
+          <Route path="/product/:id" element={<ProductDetailWrapper />} />
+          <Route path="/about" element={<AboutView onClose={() => navigate('/')} content={config.acerca_de} />} />
+          <Route path="/terms" element={<TermsView onClose={() => navigate('/')} content={config.terminos} />} />
+          <Route path="/contact" element={<ContactView onClose={() => navigate('/')} content={config.contacto} email={profile?.email} />} />
+        </Routes>
       </main>
-      <BottomNav currentTab={currentTab} setCurrentTab={navigateTo} cartCount={Object.keys(favorites).length} />
-      {selectedProductId && <ProductDetail productId={selectedProductId} onClose={() => navigateTo(currentTab)} onFavoriteToggle={toggleFavorite} isFavorite={!!favorites[selectedProductId]} products={products} theme={theme} />}
+      <BottomNav cartCount={Object.keys(favorites).length} />
       {isAuthOpen && <AuthModal 
         isOpen={isAuthOpen} 
         onClose={() => setIsAuthOpen(false)} 
