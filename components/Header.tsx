@@ -109,7 +109,7 @@ const Header: React.FC<HeaderProps> = ({
   </div>
 )}
 
-      {!['/favs', '/acerca-de', '/terminos', '/contacto'].includes(location.pathname) && (
+      {!['/chango', '/acerca-de', '/terminos', '/contacto'].includes(location.pathname) && (
         <div className="flex gap-2">
           <button 
             onClick={() => setTrendFilter(trendFilter === 'down' ? null : 'down')} 

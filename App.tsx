@@ -275,13 +275,13 @@ useEffect(() => {
     if (currentPath === '/carnes') result = result.filter(p => p.categoria?.toLowerCase().includes('carne'));
     else if (currentPath === '/verdu') result = result.filter(p => p.categoria?.toLowerCase().includes('verdu') || p.categoria?.toLowerCase().includes('fruta'));
     else if (currentPath === '/varios') result = result.filter(p => !p.categoria?.toLowerCase().includes('carne') && !p.categoria?.toLowerCase().includes('verdu'));
-    else if (currentPath === '/favs') result = result.filter(p => favorites[p.id]);
+    else if (currentPath === '/chango') result = result.filter(p => favorites[p.id]);
 
     if (searchTerm) {
       const t = searchTerm.toLowerCase();
       result = result.filter(p => p.nombre.toLowerCase().includes(t) || (p.ticker && p.ticker.toLowerCase().includes(t)));
     }
-    if (trendFilter && currentPath !== '/favs') {
+    if (trendFilter && currentPath !== '/chango') {
       result = result.filter(p => trendFilter === 'up' ? p.stats.isUp : p.stats.isDown);
     }
     return result;
@@ -350,7 +350,7 @@ useEffect(() => {
   const handleLoadSavedCart = (index: number) => {
     setFavorites(savedCarts[index].items);
     setPurchasedItems(new Set());
-    navigate('/favs');
+    navigate('/chango');
   };
 
   const handleSignOut = async () => {
@@ -504,7 +504,7 @@ useEffect(() => {
       onTogglePurchased={togglePurchased}
     />
   } />
-  <Route path="/favs" element={
+  <Route path="/chango" element={
     <>
       {filteredProducts.length > 0 && (
         <CartSummary 
