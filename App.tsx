@@ -21,6 +21,25 @@ const slugify = (text: string) => {
     .replace(/--+/g, '-');    // Quitar guiones dobles
 };
 
+const ProductDetailWrapper = ({ products, favorites, toggleFavorite, theme }: any) => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const product = products.find((p: any) => p.id === Number(id));
+
+  if (!product) return <Navigate to="/" replace />;
+
+  return (
+    <ProductDetail
+      productId={product.id}
+      onClose={() => navigate(-1)}
+      onFavoriteToggle={toggleFavorite}
+      isFavorite={!!favorites[product.id]}
+      products={products}
+      theme={theme}
+    />
+  );
+};
+
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [history, setHistory] = useState<PriceHistory[]>([]);
@@ -179,24 +198,39 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, [loadData]);
 
-  // --- MODIFICACIÓN: PERSISTENCIA HÍBRIDA (LOCAL + NUBE) ---
+// --- PERSISTENCIA MEJORADA (LOCAL + NUBE + MINIMIZADO) ---
 useEffect(() => {
-  // 1. Guardado INSTANTÁNEO en LocalStorage (Sin delay para evitar pérdida al minimizar)
+  // 1. Guardado INSTANTÁNEO en LocalStorage (esto es infalible)
   localStorage.setItem('tc_favs', JSON.stringify(favorites));
   localStorage.setItem('tc_saved_lists', JSON.stringify(savedCarts));
 
-  // 2. Sincronización con Supabase (Solo esto lleva delay)
-  if (user && !loading) {
-    const timer = setTimeout(async () => {
+  const sincronizarConNube = async () => {
+    if (user && !loading) {
       try {
         const dataToSave = { active: favorites, saved: savedCarts };
         await saveCartData(user.id, dataToSave);
       } catch (e) {
-        console.error("Error persistiendo datos en la nube:", e);
+        console.error("Error sincronizando:", e);
       }
-    }, 1500);
-    return () => clearTimeout(timer);
-  }
+    }
+  };
+
+  // 2. Detectar cuando el usuario minimiza o cambia de pestaña
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'hidden') {
+      sincronizarConNube(); // Guarda inmediatamente sin esperar al timer
+    }
+  };
+
+  // 3. Timer para uso normal (bajado a 800ms para más rapidez)
+  const timer = setTimeout(sincronizarConNube, 800);
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  
+  return () => {
+    clearTimeout(timer);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
 }, [favorites, savedCarts, user, loading]);
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
@@ -327,29 +361,6 @@ useEffect(() => {
 
   if (loading && products.length === 0) return <div className="min-h-screen flex items-center justify-center dark:bg-primary dark:text-white font-mono text-[11px] uppercase tracking-[0.2em]">Conectando a Mercado...</div>;
   
-  const ProductDetailWrapper = () => {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const product = products.find(p => p.id === Number(id));
-  
-    if (!product) {
-      // Si el producto no se encuentra, redirigir a la home.
-      // Esto puede pasar si se accede a una URL de producto directamente antes de que los productos se carguen.
-      return <Navigate to="/" replace />;
-    }
-  
-    return (
-      <ProductDetail
-        productId={product.id}
-        onClose={() => navigate(-1)} // Volver a la página anterior
-        onFavoriteToggle={toggleFavorite}
-        isFavorite={!!favorites[product.id]}
-        products={products}
-        theme={theme}
-      />
-    );
-  };
-
   return (
   <div className="max-w-screen-md mx-auto min-h-screen bg-white dark:bg-primary shadow-2xl transition-colors font-sans pb-16">
     
@@ -490,7 +501,14 @@ useEffect(() => {
               />
             </>
           } />
-          <Route path="/product/:id" element={<ProductDetailWrapper />} />
+          <Route path="/product/:id" element={
+              <ProductDetailWrapper 
+                products={products} 
+                favorites={favorites} 
+                toggleFavorite={toggleFavorite} 
+                theme={theme} 
+              />
+            } />
           <Route path="/about" element={<AboutView onClose={() => navigate('/')} content={config.acerca_de} />} />
           <Route path="/terms" element={<TermsView onClose={() => navigate('/')} content={config.terminos} />} />
           <Route path="/contact" element={<ContactView onClose={() => navigate('/')} content={config.contacto} email={profile?.email} />} />

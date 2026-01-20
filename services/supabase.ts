@@ -22,9 +22,17 @@ const isValidUrl = (url: string) => {
   }
 };
 
+// Busca esta parte en supabase.ts
 export const supabase = createClient(
   isValidUrl(SUPABASE_URL) ? SUPABASE_URL : 'https://placeholder.supabase.co',
-  SUPABASE_KEY || 'placeholder-key'
+  SUPABASE_KEY || 'placeholder-key',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
 );
 
 export const getProducts = async (): Promise<Product[]> => {
