@@ -22,7 +22,11 @@ const AuthModal: React.FC<AuthModalProps> = ({
   savedCarts = [], onSaveCart, onDeleteCart, onLoadCart,
   currentActiveCartSize
 }) => {
-  const [view, setView] = useState<'main' | 'mis_changos' | 'membresias' | 'profile' | 'welcome' | 'form'>('main');
+  const [view, setView] = useState<'main' | 'mis_changos' | 'membresias' | 'profile' | 'welcome' | 'form'>(() => {
+  const savedView = localStorage.getItem('active_auth_view');
+  // Si hay algo guardado lo usa, si no, usa 'main'
+  return (savedView as any) || 'main';
+});
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,12 +59,22 @@ const AuthModal: React.FC<AuthModalProps> = ({
   }, [onClose]);
 
   useEffect(() => {
-    if (user) setView('profile');
-    else {
-      setView('welcome');
-      setSuccess(null);
+  if (!user) {
+    setView('welcome');
+    setSuccess(null);
+    localStorage.removeItem('active_auth_view'); // Limpiamos al salir
+  } else {
+    // Solo forzamos 'profile' si el usuario acaba de entrar y está en vistas de "no logueado"
+    if (view === 'welcome' || view === 'form' || view === 'main') {
+      setView('profile');
     }
-  }, [user]);
+  }
+}, [user]);
+
+  useEffect(() => {
+  // Guardamos la vista actual cada vez que cambia
+  localStorage.setItem('active_auth_view', view);
+}, [view]);
 
   const toggleMembership = async (slug: string, tipo: string = 'standard') => {
     if (!user || !profile) return;
@@ -169,10 +183,10 @@ const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleSignOut = async () => {
-    // USAMOS EL BYPASS PARA EL SIGNOUT TAMBIÉN
-    await (supabase.auth as any).signOut();
-    onSignOut();
-    onClose();
+  await (supabase.auth as any).signOut();
+  localStorage.removeItem('active_auth_view'); // <--- AGREGAR ESTO
+  onSignOut();
+  onClose();
     window.location.hash = 'home';
   };
 

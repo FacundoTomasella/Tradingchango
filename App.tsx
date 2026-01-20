@@ -22,11 +22,17 @@ const slugify = (text: string) => {
 };
 
 const ProductDetailWrapper = ({ products, favorites, toggleFavorite, theme }: any) => {
-  const { id } = useParams();
+  const { category, slug } = useParams(); // Ahora usamos categoría y slug
   const navigate = useNavigate();
-  const product = products.find((p: any) => p.id === Number(id));
+  
+  // Buscamos el producto por categoría y por el nombre transformado a slug
+  const product = products.find((p: any) => 
+    p.categoria?.toLowerCase() === category?.toLowerCase() && 
+    slugify(p.nombre) === slug
+  );
 
-  if (!product) return <Navigate to="/" replace />;
+  if (!product && products.length > 0) return <Navigate to="/" replace />;
+  if (!product) return null;
 
   return (
     <ProductDetail
@@ -342,22 +348,30 @@ useEffect(() => {
   };
 
   const handleSignOut = async () => {
-    setLoading(true);
-    await (supabase.auth as any).signOut();
-    
-    // Limpieza de rastro en PC/Móvil
-    localStorage.removeItem('tc_favs');
-    localStorage.removeItem('tc_saved_lists');
+  setLoading(true);
+  
+  // 1. Forzar borrado local INMEDIATO de tokens de Supabase
+  // Esto evita que el F5 encuentre la sesión vieja
+  const keysToRemove = Object.keys(localStorage).filter(key => key.startsWith('sb-'));
+  keysToRemove.forEach(key => localStorage.removeItem(key));
+  
+  localStorage.removeItem('tc_favs');
+  localStorage.removeItem('tc_saved_lists');
 
-    setUser(null);
-    setProfile(null);
-    setFavorites({});
-    setSavedCarts([]);
-    setPurchasedItems(new Set());
-    setIsAuthOpen(false);
-    setLoading(false);
-    navigate('/');
-  };
+  // 2. Ejecutar el cierre de sesión en el servidor
+  await supabase.auth.signOut();
+
+  // 3. Limpiar estado de la App
+  setUser(null);
+  setProfile(null);
+  setFavorites({});
+  setSavedCarts([]);
+  setPurchasedItems(new Set());
+  setIsAuthOpen(false);
+  setLoading(false);
+  
+  navigate('/', { replace: true });
+};
 
   if (loading && products.length === 0) return <div className="min-h-screen flex items-center justify-center dark:bg-primary dark:text-white font-mono text-[11px] uppercase tracking-[0.2em]">Conectando a Mercado...</div>;
   
@@ -419,7 +433,7 @@ useEffect(() => {
           <Route path="/" element={
             <ProductList 
               products={filteredProducts as any} 
-              onProductClick={id => navigate(`/product/${id}`)}
+              onProductClick={p => navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`)}
               onFavoriteToggle={toggleFavorite} 
               isFavorite={id => !!favorites[id]}
               isCartView={false} 
@@ -501,17 +515,17 @@ useEffect(() => {
               />
             </>
           } />
-          <Route path="/product/:id" element={
-              <ProductDetailWrapper 
-                products={products} 
-                favorites={favorites} 
-                toggleFavorite={toggleFavorite} 
-                theme={theme} 
-              />
-            } />
-          <Route path="/about" element={<AboutView onClose={() => navigate('/')} content={config.acerca_de} />} />
-          <Route path="/terms" element={<TermsView onClose={() => navigate('/')} content={config.terminos} />} />
-          <Route path="/contact" element={<ContactView onClose={() => navigate('/')} content={config.contacto} email={profile?.email} />} />
+          <Route path="/:category/:slug" element={
+            <ProductDetailWrapper 
+              products={products} 
+              favorites={favorites} 
+              toggleFavorite={toggleFavorite} 
+              theme={theme} 
+            />
+          } />
+          <Route path="/acerca-de" element={<AboutView onClose={() => navigate('/')} content={config.acerca_de} />} />
+          <Route path="/terminos" element={<TermsView onClose={() => navigate('/')} content={config.terminos} />} />
+          <Route path="/contacto" element={<ContactView onClose={() => navigate('/')} content={config.contacto} email={profile?.email} />} />
         </Routes>
       </main>
       <BottomNav cartCount={Object.keys(favorites).length} />
