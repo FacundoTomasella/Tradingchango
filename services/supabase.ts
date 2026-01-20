@@ -189,9 +189,18 @@ export const getCatalogoMembresias = async () => {
 };
 
 export const getConfig = async () => {
-  const { data, error } = await supabase.from('configuracion').select('*');
+  // Agregamos .order('id', { ascending: true })
+  const { data, error } = await supabase
+    .from('configuracion')
+    .select('*')
+    .order('id', { ascending: true }); 
+
   if (error) throw error;
+
   const config: Record<string, string> = {};
-    data?.forEach((row: any) => { config[row.clave as keyof typeof config] = row.valor; });
+  data?.forEach((row: any) => { 
+    config[row.clave as keyof typeof config] = row.valor; 
+  });
+  
   return config;
 };
