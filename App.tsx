@@ -82,6 +82,12 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  useEffect(() => {
+    // Solo borramos si NO estamos en la misma página (evita bucles)
+    setSearchTerm('');
+    setTrendFilter(null);
+  }, [location.pathname]);
+  
   const navigateTo = (path: string) => navigate(path === 'home' ? '/' : '/' + path.replace('/', ''));
 
   useEffect(() => {
@@ -210,12 +216,7 @@ useEffect(() => {
   localStorage.setItem('tc_favs', JSON.stringify(favorites));
   localStorage.setItem('tc_saved_lists', JSON.stringify(savedCarts));
 
-  useEffect(() => {
-  setSearchTerm('');      // Borra el texto del buscador
-  setTrendFilter(null);   // Opcional: También borra el filtro de "Precios bajando/subiendo"
-}, [location.pathname]);
-
-  const sincronizarConNube = async () => {
+   const sincronizarConNube = async () => {
     if (user && !loading) {
       try {
         const dataToSave = { active: favorites, saved: savedCarts };
