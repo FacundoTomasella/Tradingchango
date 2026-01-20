@@ -430,110 +430,118 @@ useEffect(() => {
       />
       <main>
         <Routes>
-          <Route path="/" element={
-            <ProductList 
-              products={filteredProducts as any} 
-              onProductClick={p => navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`)}
-              onFavoriteToggle={toggleFavorite} 
-              isFavorite={id => !!favorites[id]}
-              isCartView={false} 
-              quantities={favorites}
-              onUpdateQuantity={handleFavoriteChangeInCart}
-              searchTerm={searchTerm}
-              purchasedItems={purchasedItems}
-              onTogglePurchased={togglePurchased}
-            />
-          } />
-          <Route path="/carnes" element={
-            <ProductList 
-              products={filteredProducts as any} 
-              onProductClick={id => navigate(`/product/${id}`)}
-              onFavoriteToggle={toggleFavorite} 
-              isFavorite={id => !!favorites[id]}
-              isCartView={false} 
-              quantities={favorites}
-              onUpdateQuantity={handleFavoriteChangeInCart}
-              searchTerm={searchTerm}
-              purchasedItems={purchasedItems}
-              onTogglePurchased={togglePurchased}
-            />
-          } />
-          <Route path="/verdu" element={
-            <ProductList 
-              products={filteredProducts as any} 
-              onProductClick={id => navigate(`/product/${id}`)}
-              onFavoriteToggle={toggleFavorite} 
-              isFavorite={id => !!favorites[id]}
-              isCartView={false} 
-              quantities={favorites}
-              onUpdateQuantity={handleFavoriteChangeInCart}
-              searchTerm={searchTerm}
-              purchasedItems={purchasedItems}
-              onTogglePurchased={togglePurchased}
-            />
-          } />
-          <Route path="/varios" element={
-            <ProductList 
-              products={filteredProducts as any} 
-              onProductClick={id => navigate(`/product/${id}`)}
-              onFavoriteToggle={toggleFavorite} 
-              isFavorite={id => !!favorites[id]}
-              isCartView={false} 
-              quantities={favorites}
-              onUpdateQuantity={handleFavoriteChangeInCart}
-              searchTerm={searchTerm}
-              purchasedItems={purchasedItems}
-              onTogglePurchased={togglePurchased}
-            />
-          } />
-          <Route path="/favs" element={
-            <>
-              {filteredProducts.length > 0 && (
-                <CartSummary 
-                  items={filteredProducts} 
-                  favorites={favorites} 
-                  benefits={benefits} 
-                  userMemberships={profile?.membresias} 
-                  onSaveCart={handleSaveCurrentCart}
-                  canSave={!!user}
-                  savedCarts={savedCarts}
-                  onLoadCart={handleLoadSavedCart}
-                  onDeleteCart={handleDeleteSavedCart}
-                />
-              )}
-              <ProductList 
-                products={filteredProducts as any} 
-                  onProductClick={(id: number) => {
-                    const p = products.find(x => x.id === id);
-                    if (p) {
-                      const cat = p.categoria?.toLowerCase() || 'producto';
-                      const nameSlug = slugify(p.nombre);
-                      navigate(`/${cat}/${nameSlug}`);
-                    }
-                  }}                
-                onFavoriteToggle={toggleFavorite} 
-                isFavorite={id => !!favorites[id]}
-                isCartView={true} 
-                quantities={favorites}
-                onUpdateQuantity={handleFavoriteChangeInCart}
-                searchTerm={searchTerm}
-                purchasedItems={purchasedItems}
-                onTogglePurchased={togglePurchased}
-              />
-            </>
-          } />
-          <Route path="/:category/:slug" element={
-            <ProductDetailWrapper 
-              products={products} 
-              favorites={favorites} 
-              toggleFavorite={toggleFavorite} 
-              theme={theme} 
-            />
-          } />
-          <Route path="/acerca-de" element={<AboutView onClose={() => navigate('/')} content={config.acerca_de} />} />
-          <Route path="/terminos" element={<TermsView onClose={() => navigate('/')} content={config.terminos} />} />
-          <Route path="/contacto" element={<ContactView onClose={() => navigate('/')} content={config.contacto} email={profile?.email} />} />
-        </Routes>
+  <Route path="/" element={
+    <ProductList 
+      products={filteredProducts as any} 
+      onProductClick={(id: number) => {
+        const p = products.find(x => x.id === id);
+        if (p) navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`);
+      }}
+      onFavoriteToggle={toggleFavorite} 
+      isFavorite={id => !!favorites[id]}
+      isCartView={false} 
+      quantities={favorites}
+      onUpdateQuantity={handleFavoriteChangeInCart}
+      searchTerm={searchTerm}
+      purchasedItems={purchasedItems}
+      onTogglePurchased={togglePurchased}
+    />
+  } />
+  <Route path="/carnes" element={
+    <ProductList 
+      products={filteredProducts as any} 
+      onProductClick={(id: number) => {
+        const p = products.find(x => x.id === id);
+        if (p) navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`);
+      }}
+      onFavoriteToggle={toggleFavorite} 
+      isFavorite={id => !!favorites[id]}
+      isCartView={false} 
+      quantities={favorites}
+      onUpdateQuantity={handleFavoriteChangeInCart}
+      searchTerm={searchTerm}
+      purchasedItems={purchasedItems}
+      onTogglePurchased={togglePurchased}
+    />
+  } />
+  <Route path="/verdu" element={
+    <ProductList 
+      products={filteredProducts as any} 
+      onProductClick={(id: number) => {
+        const p = products.find(x => x.id === id);
+        if (p) navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`);
+      }}
+      onFavoriteToggle={toggleFavorite} 
+      isFavorite={id => !!favorites[id]}
+      isCartView={false} 
+      quantities={favorites}
+      onUpdateQuantity={handleFavoriteChangeInCart}
+      searchTerm={searchTerm}
+      purchasedItems={purchasedItems}
+      onTogglePurchased={togglePurchased}
+    />
+  } />
+  <Route path="/varios" element={
+    <ProductList 
+      products={filteredProducts as any} 
+      onProductClick={(id: number) => {
+        const p = products.find(x => x.id === id);
+        if (p) navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`);
+      }}
+      onFavoriteToggle={toggleFavorite} 
+      isFavorite={id => !!favorites[id]}
+      isCartView={false} 
+      quantities={favorites}
+      onUpdateQuantity={handleFavoriteChangeInCart}
+      searchTerm={searchTerm}
+      purchasedItems={purchasedItems}
+      onTogglePurchased={togglePurchased}
+    />
+  } />
+  <Route path="/favs" element={
+    <>
+      {filteredProducts.length > 0 && (
+        <CartSummary 
+          items={filteredProducts} 
+          favorites={favorites} 
+          benefits={benefits} 
+          userMemberships={profile?.membresias} 
+          onSaveCart={handleSaveCurrentCart}
+          canSave={!!user}
+          savedCarts={savedCarts}
+          onLoadCart={handleLoadSavedCart}
+          onDeleteCart={handleDeleteSavedCart}
+        />
+      )}
+      <ProductList 
+        products={filteredProducts as any} 
+        onProductClick={(id: number) => {
+          const p = products.find(x => x.id === id);
+          if (p) navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`);
+        }}                
+        onFavoriteToggle={toggleFavorite} 
+        isFavorite={id => !!favorites[id]}
+        isCartView={true} 
+        quantities={favorites}
+        onUpdateQuantity={handleFavoriteChangeInCart}
+        searchTerm={searchTerm}
+        purchasedItems={purchasedItems}
+        onTogglePurchased={togglePurchased}
+      />
+    </>
+  } />
+  <Route path="/:category/:slug" element={
+    <ProductDetailWrapper 
+      products={products} 
+      favorites={favorites} 
+      toggleFavorite={toggleFavorite} 
+      theme={theme} 
+    />
+  } />
+  <Route path="/acerca-de" element={<AboutView onClose={() => navigate('/')} content={config.acerca_de} />} />
+  <Route path="/terminos" element={<TermsView onClose={() => navigate('/')} content={config.terminos} />} />
+  <Route path="/contacto" element={<ContactView onClose={() => navigate('/')} content={config.contacto} email={profile?.email} />} />
+</Routes>
       </main>
       <BottomNav cartCount={Object.keys(favorites).length} />
       {isAuthOpen && <AuthModal 
