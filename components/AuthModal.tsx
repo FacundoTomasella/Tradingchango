@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase, getCatalogoMembresias, updateMemberships } from '../services/supabase';
 import { Profile, Membership, UserMembership } from '../types';
@@ -22,19 +21,20 @@ const AuthModal: React.FC<AuthModalProps> = ({
   savedCarts = [], onSaveCart, onDeleteCart, onLoadCart,
   currentActiveCartSize
 }) => {
-  const [view, setView] = useState<'main' | 'mis_changos' | 'membresias' | 'profile' | 'welcome' | 'form'>(() => {
-  const savedView = localStorage.getItem('active_auth_view');
-  // Si hay algo guardado lo usa, si no, usa 'main'
-  return (savedView as any) || 'main';
-});
+  // --- ESTADOS ---
+  const [view, setView] = useState<'main' | 'mis_changos' | 'membresias' | 'profile' | 'welcome' | 'form' | 'forgot_password' | 'update_password'>(() => {
+    const savedView = localStorage.getItem('active_auth_view');
+    return (savedView as any) || 'main';
+  });
+  
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [newCartName, setNewCartName] = useState('');
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
   const [fechaNacimiento, setFechaNacimiento] = useState('');
@@ -42,9 +42,26 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [catalogo, setCatalogo] = useState<Membership[]>([]);
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // --- EFECTOS ---
   useEffect(() => {
     if (view === 'membresias') getCatalogoMembresias().then(setCatalogo);
   }, [view]);
+
+  useEffect(() => {
+    localStorage.setItem('active_auth_view', view);
+  }, [view]);
+
+  useEffect(() => {
+    if (!user) {
+      // Si no hay usuario y no estamos en recuperar pass o login, vamos a welcome
+      if (view !== 'forgot_password' && view !== 'update_password' && view !== 'form') {
+        setView('welcome');
+      }
+      setSuccess(null);
+    } else {
+      if (view === 'welcome' || view === 'form') setView('profile');
+    }
+  }, [user]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -53,32 +70,108 @@ const AuthModal: React.FC<AuthModalProps> = ({
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
   useEffect(() => {
-  if (!user) {
-    setView('welcome');
-    setSuccess(null);
-    localStorage.removeItem('active_auth_view'); // Limpiamos al salir
-  } else {
-    // Solo forzamos 'profile' si el usuario acaba de entrar y está en vistas de "no logueado"
-    if (view === 'welcome' || view === 'form' || view === 'main') {
-      setView('profile');
+  // Escuchar si App.tsx nos cambia la vista desde afuera
+  const handleStorageChange = () => {
+    const forcedView = localStorage.getItem('active_auth_view');
+    if (forcedView === 'update_password') {
+      setView('update_password');
     }
-  }
-}, [user]);
+  };
 
-  useEffect(() => {
-  // Guardamos la vista actual cada vez que cambia
-  localStorage.setItem('active_auth_view', view);
-}, [view]);
+  window.addEventListener('storage', handleStorageChange);
+  return () => window.removeEventListener('storage', handleStorageChange);
+}, []);
+
+
+  // --- MANEJADORES DE AUTH ---
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const auth = supabase.auth as any;
+      if (mode === 'register') {
+        const { data, error: signUpError } = await auth.signUp({
+          email,
+          password,
+          options: { data: { nombre, apellido, fecha_nacimiento: fechaNacimiento } }
+        });
+        if (signUpError) throw signUpError;
+
+        if (data?.user) {
+          await supabase.from('perfiles').upsert({
+            id: data.user.id,
+            email,
+            nombre,
+            apellido,
+            fecha_nacimiento: fechaNacimiento,
+            subscription: 'pro',
+            subscription_end: '2027-01-01'
+          });
+        }
+        setSuccess(`¡Bienvenido ${nombre}! Revisa tu email.`);
+        setMode('login');
+      } else {
+        const { error: signInError } = await auth.signInWithPassword({ email, password });
+        if (signInError) throw new Error('Credenciales incorrectas.');
+        setSuccess(`¡Hola de nuevo!`);
+        if (onProfileUpdate) onProfileUpdate();
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const { error } = await (supabase.auth as any).resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/update-password`,
+      });
+      if (error) throw error;
+      setSuccess("¡Mail enviado! Revisa tu bandeja de entrada.");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const { error } = await (supabase.auth as any).updateUser({ password: newPassword });
+      if (error) throw error;
+      setSuccess("Contraseña actualizada con éxito.");
+      setTimeout(() => setView('profile'), 2000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await (supabase.auth as any).signOut();
+    localStorage.removeItem('active_auth_view');
+    onSignOut();
+    onClose();
+  };
 
   const toggleMembership = async (slug: string, tipo: string = 'standard') => {
     if (!user || !profile) return;
-    
     const current = profile.membresias || [];
     const isSelected = current.some(m => m.slug === slug && m.tipo === tipo);
     const next = isSelected 
@@ -86,7 +179,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
       : [...current, { slug, tipo }];
 
     setLoading(true);
-    setError(null);
     try {
       await updateMemberships(user.id, next);
       if (onProfileUpdate) onProfileUpdate();
@@ -116,79 +208,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
     if (!profile || profile.subscription !== 'pro') return false;
     return profile.subscription_end ? new Date(profile.subscription_end) > new Date() : false;
   }, [profile]);
-
-  const handleAuth = async (e: React.FormEvent) => {
-      e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // CREAMOS ESTA CONSTANTE PARA EVITAR ERRORES DE TYPESCRIPT EN GITHUB.DEV
-      const auth = supabase.auth as any;
-
-      if (mode === 'register') {
-        const { data, error: signUpError } = await auth.signUp({
-          email,
-          password,
-          options: {
-            // Estos datos se guardan en auth.users (metadata)
-            data: { nombre, apellido, fecha_nacimiento: fechaNacimiento }
-          }
-        });
-
-        if (signUpError) throw signUpError;
-
-        // Si el usuario se creó correctamente, insertamos en la tabla 'perfiles'
-        if (data?.user) {
-          const { error: profileError } = await supabase.from('perfiles').upsert({
-                id: data.user.id,
-                email,
-                nombre,
-                apellido,
-                fecha_nacimiento: fechaNacimiento,
-                subscription: 'pro',
-                subscription_end: '2027-01-01'
-          });
-          
-          if (profileError) console.error("Error al crear perfil:", profileError);
-        }
-
-        setSuccess(`¡Bienvenido ${nombre}! Tu cuenta está lista.`);
-        setMode('login');
-      } else {
-        // USAMOS EL MÉTODO DE LA V2: signInWithPassword
-        const { error: signInError } = await auth.signInWithPassword({ 
-          email, 
-          password 
-        });
-
-        if (signInError) throw new Error('Credenciales incorrectas.');
-        
-        setSuccess(`¡Hola Trader!`);
-        setTimeout(() => {
-           if (onProfileUpdate) onProfileUpdate();
-           // Opcional: cerrar el modal después del login exitoso
-           
-        }, 1000);
-      }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-  await (supabase.auth as any).signOut();
-  localStorage.removeItem('active_auth_view'); // <--- AGREGAR ESTO
-  onSignOut();
-  onClose();
-    window.location.hash = 'home';
-  };
 
   if (!isOpen) return null;
 
@@ -222,13 +241,45 @@ const AuthModal: React.FC<AuthModalProps> = ({
             )}
             <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="EMAIL" required className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-3 rounded-lg dark:text-white text-[11px] font-bold" />
             <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="CONTRASEÑA" required className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-3 rounded-lg dark:text-white text-[11px] font-bold" />
+            
             <button disabled={loading} className="w-full bg-green-500 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-[11px] mt-2 shadow-lg shadow-green-500/20">
               {loading ? 'Procesando...' : (mode === 'login' ? 'Entrar' : 'Registrar')}
             </button>
+
+            {mode === 'login' && (
+              <button type="button" onClick={() => setView('forgot_password')} className="w-full text-[10px] font-black text-neutral-400 uppercase mt-2">
+                ¿Olvidaste tu contraseña?
+              </button>
+            )}
             <button type="button" onClick={() => setView('welcome')} className="w-full text-[10px] font-black text-neutral-400 uppercase mt-4">Volver</button>
           </form>
-        )} 
-               {view === 'profile' && user && (
+        )}
+
+        {view === 'forgot_password' && (
+          <form onSubmit={handleResetPassword} className="space-y-4 animate-in fade-in slide-in-from-right-4">
+            <h3 className="text-xl font-black dark:text-white mb-2 uppercase tracking-tighter">Recuperar Acceso</h3>
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 font-medium leading-relaxed mb-4">
+              Ingresá tu email y te enviaremos un link para restablecer tu contraseña.
+            </p>
+            <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="EMAIL" required className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-3 rounded-lg dark:text-white text-[11px] font-bold" />
+            <button disabled={loading} className="w-full bg-primary dark:bg-white dark:text-black text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-[11px] shadow-lg">
+              {loading ? 'Enviando...' : 'Enviar Link'}
+            </button>
+            <button type="button" onClick={() => setView('form')} className="w-full text-[10px] font-black text-neutral-400 uppercase mt-4">Volver al login</button>
+          </form>
+        )}
+
+        {view === 'update_password' && (
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <h3 className="text-xl font-black dark:text-white mb-4 uppercase tracking-tighter">Nueva Contraseña</h3>
+            <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="NUEVA CONTRASEÑA" required className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-3 rounded-lg dark:text-white text-[11px] font-bold" />
+            <button disabled={loading} className="w-full bg-green-500 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-[11px] shadow-lg">
+              {loading ? 'Guardando...' : 'Actualizar Contraseña'}
+            </button>
+          </form>
+        )}
+
+        {view === 'profile' && user && (
           <div className="text-center animate-in fade-in duration-300">
             <div className="w-14 h-14 bg-neutral-100 dark:bg-neutral-900 rounded-xl flex items-center justify-center text-xl mx-auto mb-4 text-neutral-500 border border-neutral-200 dark:border-neutral-800">
               <i className="fa-solid fa-user-astronaut"></i>
@@ -236,7 +287,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
             <h4 className="font-black dark:text-white text-xl mb-1 truncate tracking-tighter uppercase">
               ¡Hola, {profile?.nombre || user.email.split('@')[0]}!
             </h4>
-                <p className={`text-[9px] font-black uppercase tracking-widest mb-6 ${isProValid ? 'text-green-500' : 'text-neutral-400'}`}> Nivel: {isProValid ? 'PRO' : 'FREE'} </p>            
+            <p className={`text-[9px] font-black uppercase tracking-widest mb-6 ${isProValid ? 'text-green-500' : 'text-neutral-400'}`}>
+              Nivel: {isProValid ? 'PRO' : 'FREE'}
+            </p>            
             <div className="space-y-2.5">
               <button onClick={() => setView('mis_changos')} className="w-full bg-neutral-50 dark:bg-neutral-900 p-4 rounded-xl text-left flex items-center justify-between border border-neutral-100 dark:border-neutral-800 hover:border-black dark:hover:border-white transition-all">
                 <div className="flex items-center gap-3">
@@ -341,6 +394,4 @@ const AuthModal: React.FC<AuthModalProps> = ({
   );
 };
 
-
 export default AuthModal;
-

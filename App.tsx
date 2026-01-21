@@ -196,10 +196,20 @@ const App: React.FC = () => {
       loadData(sessionUser);
     });
 
-    const { data: { subscription } } = auth.onAuthStateChange((_event: any, session: any) => {
+    const { data: { subscription } } = auth.onAuthStateChange((_event: string, session: any) => {
       const sessionUser = session?.user ?? null;
       setUser(sessionUser);
+      
       if (_event === 'SIGNED_IN') loadData(sessionUser);
+      
+      if (_event === 'PASSWORD_RECOVERY') {
+      // 1. Forzamos que el modal se abra
+      setIsAuthOpen(true);
+      // 2. Le decimos al modal que muestre la vista de "Nueva Contraseña"
+      localStorage.setItem('active_auth_view', 'update_password');
+      // 3. Pequeño hack para asegurar que el modal se de cuenta del cambio
+      window.dispatchEvent(new Event('storage')); 
+    }
       else if (_event === 'SIGNED_OUT') { 
         setProfile(null); 
         setFavorites({}); 
