@@ -275,16 +275,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
         )}
 
         {view === 'update_password' && (
-          <form onSubmit={handleUpdatePassword} className="space-y-4">
-            <h3 className="text-xl font-black dark:text-white mb-4 uppercase tracking-tighter">Nueva Contraseña</h3>
-            <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="NUEVA CONTRASEÑA" required className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-3 rounded-lg dark:text-white text-[11px] font-bold" />
-            <button disabled={loading} className="w-full bg-green-500 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-[11px] shadow-lg">
-              {loading ? 'Guardando...' : 'Actualizar Contraseña'}
-            </button>
-          </form>
-        )}
-
-        {view === 'update_password' && (
           <form onSubmit={handleUpdatePassword} className="space-y-4 animate-in fade-in slide-in-from-right-4">
             <h3 className="text-xl font-black dark:text-white mb-2 uppercase tracking-tighter">Nueva Contraseña</h3>
             <p className="text-[11px] text-neutral-500 dark:text-neutral-400 font-medium mb-4">
