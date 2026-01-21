@@ -141,7 +141,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true); setError(null);
     try {
       const { error } = await (supabase.auth as any).resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
+        redirectTo: `${window.location.origin}`,
       });
       if (error) throw error;
       setSuccess("¡Mail enviado! Revisa tu bandeja de entrada.");
