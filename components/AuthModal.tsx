@@ -152,39 +152,32 @@ const AuthModal: React.FC<AuthModalProps> = ({
   try {
     const auth = supabase.auth as any;
 
-    // 1. Intentamos obtener la sesión actual
-    let { data: { session } } = await auth.getSession();
+    // 1. Forzamos un refresco de la sesión que viene en la URL
+    // Esto es clave si el navegador tardó en procesar el hash (#)
+    const { data: { session }, error: sessionError } = await auth.getSession();
 
-    // 2. Si NO hay sesión, intentamos forzar la detección del hash de la URL
-    if (!session && window.location.hash) {
-      console.log("Sesión no detectada, intentando forzar reconocimiento de token...");
-      // Este pequeño truco obliga a Supabase a procesar el hash si no lo hizo
-      const { data: refreshedData } = await auth.getSession();
-      session = refreshedData.session;
+    if (sessionError || !session) {
+       // Si no la encuentra, le damos un último segundo de gracia
+       await new Promise(res => setTimeout(res, 1000));
+       const { data: retry } = await auth.getSession();
+       if (!retry.session) {
+         throw new Error("No se detectó una sesión activa. Probá copiando y pegando el link en una ventana de incógnito.");
+       }
     }
 
-    // 3. Si después del intento sigue sin haber sesión, esperamos un segundo y reintentamos
-    if (!session) {
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Esperamos 1.5 segundos
-      const finalRetry = await auth.getSession();
-      session = finalRetry.data.session;
-    }
+    // 2. Intentamos actualizar la contraseña
+    const { error: updateError } = await auth.updateUser({ 
+      password: newPassword 
+    });
 
-    if (!session) {
-      throw new Error("El link de recuperación es inválido o ya fue usado. Por favor, pedí uno nuevo.");
-    }
-
-    // 4. Si tenemos sesión, procedemos a actualizar
-    const { error: updateError } = await auth.updateUser({ password: newPassword });
-    
     if (updateError) throw updateError;
 
-    // 5. ÉXITO
+    // 3. ÉXITO
     setSuccess("¡Contraseña actualizada con éxito!");
-    localStorage.removeItem('active_auth_view');
     
-    // Limpiamos la URL para que no vuelva a saltar el modo recuperación
-    window.history.replaceState(null, '', window.location.pathname);
+    // Limpieza total para evitar que el modal vuelva a saltar
+    localStorage.removeItem('active_auth_view');
+    window.history.replaceState(null, '', '/');
 
     setTimeout(() => {
       setView('profile');
@@ -192,7 +185,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
     }, 2000);
 
   } catch (err: any) {
-    console.error("Error al actualizar pass:", err);
+    console.error("Error en recuperación:", err);
     setError(err.message || "Error al actualizar la contraseña.");
   } finally {
     setLoading(false);
