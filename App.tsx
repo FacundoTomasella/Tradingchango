@@ -208,7 +208,9 @@ const App: React.FC = () => {
       // 2. Le decimos al modal que muestre la vista de "Nueva Contraseña"
       localStorage.setItem('active_auth_view', 'update_password');
       // 3. Pequeño hack para asegurar que el modal se de cuenta del cambio
+      setTimeout(() => {
       window.dispatchEvent(new Event('storage')); 
+      }, 100);
     }
       else if (_event === 'SIGNED_OUT') { 
         setProfile(null); 
