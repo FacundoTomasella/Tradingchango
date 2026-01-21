@@ -189,46 +189,60 @@ const App: React.FC = () => {
   }, [products.length]);
 
   useEffect(() => {
-    const auth = supabase.auth as any;
+  // 1. Detección manual por URL (Fallback)
+  const checkRecoveryURL = () => {
+    const { hash, pathname } = window.location;
+    if (hash.includes('type=recovery') || pathname === '/update-password') {
+      localStorage.setItem('active_auth_view', 'update_password');
+      setIsAuthOpen(true);
+    }
+  };
+  
+  checkRecoveryURL();
+
+  // 2. Obtener sesión inicial
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    const sessionUser = session?.user ?? null;
+    setUser(sessionUser);
+    if (sessionUser) loadData(sessionUser);
+  });
+
+  // 3. Suscripción a cambios de estado
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const sessionUser = session?.user ?? null;
+    setUser(sessionUser);
     
-    // 1. Check inicial (Plan B): Detectar recuperación por URL si el evento falla
-    const checkRecoveryURL = () => {
-      const hash = window.location.hash;
-      if (hash.includes('type=recovery') || window.location.pathname === '/update-password') {
+    switch (event) {
+      case 'SIGNED_IN':
+        loadData(sessionUser);
+        break;
+        
+      case 'PASSWORD_RECOVERY':
+        console.log("Sesión de recuperación detectada");
         localStorage.setItem('active_auth_view', 'update_password');
         setIsAuthOpen(true);
-      }
-    };
-    checkRecoveryURL();
-
-    auth.getSession().then(({ data: { session } }: any) => {
-      const sessionUser = session?.user ?? null;
-      setUser(sessionUser);
-      loadData(sessionUser);
-    });
-
-    const { data: { subscription } } = auth.onAuthStateChange((_event: string, session: any) => {
-      const sessionUser = session?.user ?? null;
-      setUser(sessionUser);
-      
-      if (_event === 'SIGNED_IN') loadData(sessionUser);
-      
-      // 2. Detección por Evento (Lo que ya tenías pero optimizado)
-      if (_event === 'PASSWORD_RECOVERY') {
-        localStorage.setItem('active_auth_view', 'update_password');
-        setIsAuthOpen(true);
-        // Despachamos un evento personalizado que es más fiable que 'storage'
         window.dispatchEvent(new CustomEvent('forceUpdatePasswordView'));
-      }
-      else if (_event === 'SIGNED_OUT') { 
+        break;
+
+      case 'USER_UPDATED':
+        console.log("Usuario actualizado correctamente");
+        break;
+
+      case 'SIGNED_OUT':
         setProfile(null); 
         setFavorites({}); 
         setSavedCarts([]);
         setPurchasedItems(new Set());
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [loadData]);
+        break;
+    }
+  });
+
+  return () => {
+    subscription.unsubscribe();
+  };
+  // IMPORTANTE: Asegúrate de que loadData esté envuelta en useCallback 
+  // o quítala de aquí si no cambia nunca.
+}, [loadData]);
 
 // --- PERSISTENCIA MEJORADA (LOCAL + NUBE + MINIMIZADO) ---
 useEffect(() => {

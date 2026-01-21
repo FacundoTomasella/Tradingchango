@@ -153,20 +153,59 @@ const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      const { error } = await (supabase.auth as any).updateUser({ password: newPassword });
-      if (error) throw error;
-      setSuccess("Contraseña actualizada con éxito.");
-      setTimeout(() => setView('profile'), 2000);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+  e.preventDefault();
+  
+  if (newPassword.length < 6) {
+    setError("La contraseña debe tener al menos 6 caracteres.");
+    return;
+  }
+
+  setLoading(true);
+  setError(null);
+  setSuccess(null);
+
+  try {
+    const auth = supabase.auth as any;
+
+    // 1. Verificamos si hay una sesión activa antes de intentar
+    const { data: sessionData } = await auth.getSession();
+    
+    if (!sessionData.session) {
+      // Si no hay sesión, el token de la URL no fue procesado. 
+      // Intentamos procesarlo manualmente si sigue en el hash
+      if (window.location.hash) {
+        console.log("Intentando recuperar sesión del hash...");
+      } else {
+        throw new Error("La sesión de recuperación expiró o es inválida. Por favor, solicitá un nuevo link.");
+      }
     }
-  };
+
+    // 2. Intentamos actualizar la contraseña
+    const { error: updateError } = await auth.updateUser({ 
+      password: newPassword 
+    });
+
+    if (updateError) throw updateError;
+
+    // 3. ÉXITO
+    setSuccess("¡Contraseña actualizada! Entrando a tu perfil...");
+    
+    // Ahora sí, limpiamos todo
+    localStorage.removeItem('active_auth_view');
+    window.history.replaceState(null, '', '/'); // Limpiamos la URL ahora que terminó
+
+    setTimeout(() => {
+      setView('profile');
+      if (onProfileUpdate) onProfileUpdate();
+    }, 2000);
+
+  } catch (err: any) {
+    console.error("Error crítico al actualizar pass:", err);
+    setError(err.message || "Error al actualizar la contraseña.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSignOut = async () => {
     await (supabase.auth as any).signOut();
