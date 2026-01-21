@@ -55,8 +55,19 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
   // --- EFECTOS ---
   useEffect(() => {
+    // Si el modal se abre y la URL indica recuperación, forzamos la vista.
+    const checkRecovery = () => {
+      if (window.location.hash.includes('type=recovery') || localStorage.getItem('active_auth_view') === 'update_password') {
+        setView('update_password');
+      }
+    };
+
+    if (isOpen) {
+      checkRecovery();
+    }
+
     if (view === 'membresias') getCatalogoMembresias().then(setCatalogo);
-  }, [view]);
+  }, [isOpen, view]);
 
   useEffect(() => {
     // Guardamos la vista para persistencia al minimizar
@@ -161,6 +172,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
     setSuccess("¡Contraseña actualizada! Entrando...");
     localStorage.removeItem('active_auth_view');
+
+    // Limpiamos la URL para que el usuario no quede en un bucle de recuperación
+    window.history.replaceState(null, '', window.location.pathname);
 
     setTimeout(() => {
       setView('profile');

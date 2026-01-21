@@ -49,7 +49,7 @@ const ProductDetailWrapper = ({ products, favorites, toggleFavorite, theme }: an
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [history, setHistory] = useState<PriceHistory[]>([]);
-  const [config, setConfig] = useState<Record<string, string>>({});
+const [config, setConfig] = useState<Record<string, string>>({});
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [benefits, setBenefits] = useState<Benefit[]>([]);
@@ -82,38 +82,15 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // --- 1. ÚNICO EFECTO DE RECUPERACIÓN (Poner al principio de App) ---
+  // --- EFECTO DE RECUPERACIÓN DE CONTRASEÑA ---
   useEffect(() => {
-    const handleRecovery = async () => {
-      const hash = window.location.hash;
-        if (!hash.includes('type=recovery')) return;
-
-      // Extraemos el código que viene en la URL
-      const params = new URLSearchParams(hash.replace('#', ''));
-      const code = params.get('code');
-
-      if (code) {
-        try {
-          // CANJEAMOS EL CÓDIGO POR UNA SESIÓN REAL
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw error;
-
-        console.log("Sesión de recuperación establecida correctamente");
-        
-        // Preparamos el modal
-        localStorage.setItem('active_auth_view', 'update_password');
-        setIsAuthOpen(true);
-
-        // LIMPIAMOS LA URL para que no se ejecute dos veces si el usuario refresca
-        window.history.replaceState({}, '', '/');
-      } catch (err) {
-        console.error("Error en el intercambio de código:", err);
-      }
+    if (location.hash.includes('type=recovery')) {
+      // El usuario llega aquí desde el mail de Supabase con una sesión temporal.
+      // Solo necesitamos mostrarle el formulario para que ponga su nueva clave.
+      localStorage.setItem('active_auth_view', 'update_password');
+      setIsAuthOpen(true);
     }
-  };
-
-  handleRecovery();
-  }, []);
+  }, [location.hash]); // Se ejecuta solo cuando cambia el hash de la URL
 
 
   useEffect(() => {
