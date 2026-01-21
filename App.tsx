@@ -200,12 +200,15 @@ const App: React.FC = () => {
   
   checkRecoveryURL();
 
+// 1. Procesar recovery desde la URL
 useEffect(() => {
   const handleRecoverySession = async () => {
     const hash = window.location.hash;
 
     if (hash && hash.includes('type=recovery')) {
-      const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+      const { error } =
+        await supabase.auth.exchangeCodeForSession(window.location.href);
+
       if (error) {
         console.error('Error procesando recovery:', error);
       }
@@ -215,53 +218,59 @@ useEffect(() => {
   handleRecoverySession();
 }, []);
 
-  // 2. Obtener sesión inicial
+
+// 2. Sesión inicial + auth listener
+useEffect(() => {
+
+  // Obtener sesión inicial
   supabase.auth.getSession().then(({ data: { session } }) => {
     const sessionUser = session?.user ?? null;
     setUser(sessionUser);
-    // Cargamos datos siempre para desbloquear la pantalla "Conectando a Mercado"
-    loadData(sessionUser); 
+    loadData(sessionUser);
   });
 
-  // 3. Suscripción a cambios de estado
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-    const sessionUser = session?.user ?? null;
-    setUser(sessionUser);
-    
-    switch (event) {
-      case 'SIGNED_IN':
-        loadData(sessionUser);
-        break;
-        
-      case 'PASSWORD_RECOVERY': // <-- CORREGIDO: Ahora es un case válido
-        console.log("Recuperación detectada");
-        localStorage.setItem('active_auth_view', 'update_password');
-        setIsAuthOpen(true);
-        
-        // Emitimos eventos para que el AuthModal reaccione
-        setTimeout(() => {
-          window.dispatchEvent(new Event('storage'));
-          window.dispatchEvent(new CustomEvent('forceUpdatePasswordView'));
-        }, 200);
-        break;
+  // Suscripción a cambios de auth
+  const { data: { subscription } } =
+    supabase.auth.onAuthStateChange(async (event, session) => {
 
-      case 'USER_UPDATED':
-        console.log("Usuario actualizado correctamente");
-        break;
+      const sessionUser = session?.user ?? null;
+      setUser(sessionUser);
 
-      case 'SIGNED_OUT':
-        setProfile(null); 
-        setFavorites({}); 
-        setSavedCarts([]);
-        setPurchasedItems(new Set());
-        break;
-    }
-  });
+      switch (event) {
+        case 'SIGNED_IN':
+          loadData(sessionUser);
+          break;
+
+        case 'PASSWORD_RECOVERY':
+          console.log("Recuperación detectada");
+          localStorage.setItem('active_auth_view', 'update_password');
+          setIsAuthOpen(true);
+
+          setTimeout(() => {
+            window.dispatchEvent(new Event('storage'));
+            window.dispatchEvent(new CustomEvent('forceUpdatePasswordView'));
+          }, 200);
+          break;
+
+        case 'USER_UPDATED':
+          console.log("Usuario actualizado correctamente");
+          break;
+
+        case 'SIGNED_OUT':
+          setProfile(null);
+          setFavorites({});
+          setSavedCarts([]);
+          setPurchasedItems(new Set());
+          break;
+      }
+    });
 
   return () => {
     subscription.unsubscribe();
   };
+
 }, [loadData]);
+
 
 // --- PERSISTENCIA MEJORADA (LOCAL + NUBE + MINIMIZADO) ---
 useEffect(() => {
