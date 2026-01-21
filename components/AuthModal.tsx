@@ -154,16 +154,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
     // 1. Forzamos un refresco de la sesión que viene en la URL
     // Esto es clave si el navegador tardó en procesar el hash (#)
-    const { data: { session }, error: sessionError } = await auth.getSession();
-
-    if (sessionError || !session) {
-       // Si no la encuentra, le damos un último segundo de gracia
-       await new Promise(res => setTimeout(res, 1000));
-       const { data: retry } = await auth.getSession();
-       if (!retry.session) {
-         throw new Error("No se detectó una sesión activa. Probá copiando y pegando el link en una ventana de incógnito.");
-       }
-    }
+   const { error: updateError } = await auth.updateUser({
+  password: newPassword
+});
 
     // 2. Intentamos actualizar la contraseña
     const { error: updateError } = await auth.updateUser({ 

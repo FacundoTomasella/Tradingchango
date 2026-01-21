@@ -200,6 +200,21 @@ const App: React.FC = () => {
   
   checkRecoveryURL();
 
+useEffect(() => {
+  const handleRecoverySession = async () => {
+    const hash = window.location.hash;
+
+    if (hash && hash.includes('type=recovery')) {
+      const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+      if (error) {
+        console.error('Error procesando recovery:', error);
+      }
+    }
+  };
+
+  handleRecoverySession();
+}, []);
+
   // 2. Obtener sesión inicial
   supabase.auth.getSession().then(({ data: { session } }) => {
     const sessionUser = session?.user ?? null;
