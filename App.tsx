@@ -226,18 +226,18 @@ const App: React.FC = () => {
   useEffect(() => {
     const auth = supabase.auth as any;
 
-    // Cargamos productos de inmediato para desbloquear la pantalla
+    // 1. Cargamos productos de inmediato
     loadData(null);
 
-    // Obtener sesión inicial al arrancar
+    // 2. Obtener sesión inicial
     auth.getSession().then(({ data: { session } }: any) => {
       const sessionUser = session?.user ?? null;
       setUser(sessionUser);
       if (sessionUser) loadData(sessionUser);
     });
 
-    // Escuchar cambios (Login, Logout)
-      const { data: { subscription } } = auth.onAuthStateChange((event: any, session: any) => {
+    // 3. Suscripción a cambios (CON TIPOS ANY PARA EVITAR EL ERROR)
+    const { data: { subscription } } = auth.onAuthStateChange((event: any, session: any) => {
       const sessionUser = session?.user ?? null;
       setUser(sessionUser);
       
