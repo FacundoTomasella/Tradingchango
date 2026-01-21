@@ -209,10 +209,9 @@ const App: React.FC = () => {
   const handleRecoverySession = async () => {
     const hash = window.location.hash;
 
-    if (hash && hash.includes('type=recovery')) {
-      const { error } =
-        await supabase.auth.exchangeCodeForSession(window.location.href);
-
+    if (hash.includes('type=recovery')) {
+      const { error } = await supabase.auth.exchangeCodeForSession();
+      
       if (error) {
         console.error('Error procesando recovery:', error);
       }
@@ -220,7 +219,8 @@ const App: React.FC = () => {
   };
 
   handleRecoverySession();
-}, []);
+      }, []);
+
 
 
 // 2. Sesión inicial + auth listener
