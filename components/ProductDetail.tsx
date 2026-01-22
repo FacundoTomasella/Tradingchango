@@ -209,10 +209,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
                 </div>
 
                 {/* Columna de Badges a la derecha */}
-                <div className="flex flex-col gap-1.5 flex-1 max-w-[160px] pb-0.5">
+                <div className="flex flex-col gap-1.5 flex-1 max-w-[135px] pb-0.5">
                   <div className="flex items-center justify-between bg-neutral-100 dark:bg-[#1f2c34] border border-neutral-200 dark:border-[#233138] px-2 py-1 rounded-md">
-                    <span className="text-[9px] font-black text-neutral-500 dark:text-neutral-400 uppercase mr-2">Promedio</span>
-                    <span className="text-[9px] font-black text-black dark:text-[#e9edef] font-mono">
+                    <span className="text-[11px] font-black text-neutral-500 dark:text-neutral-400 uppercase mr-2">Promedio</span>
+                    <span className="text-[11px] font-black text-black dark:text-[#e9edef] font-mono">
                       ${formatCurrency(Math.round(avgPrice))}
                     </span>
                   </div>
