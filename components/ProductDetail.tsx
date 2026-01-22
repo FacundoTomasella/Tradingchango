@@ -54,11 +54,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
   const modalRef = useRef<HTMLDivElement>(null);
 
   const product = useMemo(() => products.find(p => p.id === productId), [products, productId]);
-  const contNum = (product as any)?.contenido_numerico || 0;
-  const unitMeasure = (product as any)?.unidad_medida || '';
-  const unitPrice = (product?.stats?.min && contNum > 0) 
-    ? Math.round(product.stats.min / contNum) 
-    : 0;
 
   useEffect(() => {
     if (product) {
@@ -83,8 +78,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
     };
   }, [onClose]);
 
-  const { minPrice, minStore, avgPrice, minStoreUrl } = useMemo(() => {
-    if (!product) return { minPrice: 0, minStore: '', avgPrice: 0, minStoreUrl: '#' };
+  const { minPrice, minStore, avgPrice, minStoreUrl, unitPrice, unitMeasure } = useMemo(() => {
+    if (!product) return { minPrice: 0, minStore: '', avgPrice: 0, minStoreUrl: '#', unitPrice: 0, unitMeasure: '' };
+    
     const prices = STORES
       .map(s => ({ 
         name: s.name, 
@@ -93,14 +89,23 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
       }))
       .filter(p => p.val > 0);
 
-    if (prices.length === 0) return { minPrice: 0, minStore: '', avgPrice: 0, minStoreUrl: '#' };
+    if (prices.length === 0) return { minPrice: 0, minStore: '', avgPrice: 0, minStoreUrl: '#', unitPrice: 0, unitMeasure: '' };
+    
     const min = Math.min(...prices.map(p => p.val));
     const winner = prices.find(p => p.val === min);
+    
+    // Cálculo de precio por unidad
+    const contNum = (product as any)?.contenido_numerico || 0;
+    const uMeasure = (product as any)?.unidad_medida || '';
+    const uPrice = (min > 0 && contNum > 0) ? Math.round(min / contNum) : 0;
+
     return { 
       minPrice: min, 
       minStore: winner?.name || '', 
       avgPrice: prices.reduce((acc, curr) => acc + curr.val, 0) / prices.length,
-      minStoreUrl: winner?.url || '#'
+      minStoreUrl: winner?.url || '#',
+      unitPrice: uPrice,
+      unitMeasure: uMeasure
     };
   }, [product]);
 
@@ -164,7 +169,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm md:p-4">
       <div 
       ref={modalRef}
-      /* CAMBIO: Fondo principal a dark:bg-primary (#0b141a) */
       className="w-full max-w-lg h-auto max-h-full md:max-h-[95vh] bg-white dark:bg-primary md:rounded-[1.2rem] overflow-y-auto shadow-2xl relative"
          >
         {/* Header Modal */}
@@ -209,20 +213,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
                       {formatCurrency(minPrice)}
                     </span>
                   </div>
-                  {/* Contenedor para las dos burbujas (Promedio y Precio por Unidad) */}
                   <div className="flex flex-wrap gap-1.5 items-center mt-2">
-                    
-                    {/* Burbuja de Promedio (La que ya tenías) */}
                     <div className="flex items-baseline gap-1 bg-neutral-100 dark:bg-[#1f2c34] border border-neutral-200 dark:border-[#233138] px-2 py-1 rounded-md mb-0.5">
                       <span className="text-[9px] font-bold text-neutral-600 dark:text-neutral-400 uppercase">Promedio:</span>
                       <span className="text-[13px] font-black text-black dark:text-[#e9edef] font-mono">$ {formatCurrency(Math.round(avgPrice))}</span>
                     </div>
 
-                    {/* NUEVA Burbuja: Precio por Unidad de Medida */}
                     {unitPrice > 0 && (
                       <div className="flex items-baseline gap-1 bg-neutral-100 dark:bg-[#1f2c34] border border-neutral-200 dark:border-[#233138] px-2 py-1 rounded-md mb-0.5">
                         <span className="text-[9px] font-bold text-neutral-600 dark:text-neutral-400 uppercase">
-                          x {product.unidad_medida}:
+                          x {unitMeasure}:
                         </span>
                         <span className="text-[13px] font-black text-black dark:text-[#e9edef] font-mono">
                           $ {formatCurrency(unitPrice)}
