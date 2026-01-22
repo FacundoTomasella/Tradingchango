@@ -86,7 +86,10 @@ const ProductList: React.FC<ProductListProps> = ({
         const purchased = purchasedItems?.has(p.id);
         const qty = quantities ? (quantities[p.id] || 1) : 1;
         const badges = getPromoBadges(p.oferta_gondola);
-
+        const contNum = (p as any).contenido_numerico || 0;
+        const unitMeasure = (p as any).unidad_medida || '';
+        // Calculamos: precio más bajo dividido el contenido
+        const unitPrice = (p.stats.min && contNum > 0) ? Math.round(p.stats.min / contNum) : 0;
         return (
           <div 
             key={p.id} 

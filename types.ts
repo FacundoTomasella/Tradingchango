@@ -16,6 +16,8 @@ export interface Product {
   url_masonline?: string;
   imagen_url?: string;
   oferta_gondola?: any;
+  unidad_medida?: string;      
+  contenido_numerico?: number; 
 }
 
 export interface PriceHistory {

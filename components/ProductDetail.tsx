@@ -54,6 +54,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
   const modalRef = useRef<HTMLDivElement>(null);
 
   const product = useMemo(() => products.find(p => p.id === productId), [products, productId]);
+  const contNum = (product as any)?.contenido_numerico || 0;
+  const unitMeasure = (product as any)?.unidad_medida || '';
+  const unitPrice = (product?.stats?.min && contNum > 0) 
+    ? Math.round(product.stats.min / contNum) 
+    : 0;
 
   useEffect(() => {
     if (product) {
@@ -204,10 +209,26 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
                       {formatCurrency(minPrice)}
                     </span>
                   </div>
-                  {/* Promedio con fondo de "burbuja" */}
-                  <div className="flex items-baseline gap-1 bg-neutral-100 dark:bg-[#1f2c34] border border-neutral-200 dark:border-[#233138] px-2 py-1 rounded-md mb-0.5">
-                    <span className="text-[9px] font-bold text-neutral-600 dark:text-neutral-400 uppercase">Promedio:</span>
-                    <span className="text-[13px] font-black text-black dark:text-[#e9edef] font-mono">$ {formatCurrency(Math.round(avgPrice))}</span>
+                  {/* Contenedor para las dos burbujas (Promedio y Precio por Unidad) */}
+                  <div className="flex flex-wrap gap-1.5 items-center mt-2">
+                    
+                    {/* Burbuja de Promedio (La que ya tenías) */}
+                    <div className="flex items-baseline gap-1 bg-neutral-100 dark:bg-[#1f2c34] border border-neutral-200 dark:border-[#233138] px-2 py-1 rounded-md mb-0.5">
+                      <span className="text-[9px] font-bold text-neutral-600 dark:text-neutral-400 uppercase">Promedio:</span>
+                      <span className="text-[13px] font-black text-black dark:text-[#e9edef] font-mono">$ {formatCurrency(Math.round(avgPrice))}</span>
+                    </div>
+
+                    {/* NUEVA Burbuja: Precio por Unidad de Medida */}
+                    {unitPrice > 0 && (
+                      <div className="flex items-baseline gap-1 bg-neutral-100 dark:bg-[#1f2c34] border border-neutral-200 dark:border-[#233138] px-2 py-1 rounded-md mb-0.5">
+                        <span className="text-[9px] font-bold text-neutral-600 dark:text-neutral-400 uppercase">
+                          x {product.unidad_medida}:
+                        </span>
+                        <span className="text-[13px] font-black text-black dark:text-[#e9edef] font-mono">
+                          $ {formatCurrency(unitPrice)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
