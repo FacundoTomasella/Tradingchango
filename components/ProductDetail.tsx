@@ -201,7 +201,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onClose, onFav
               {/* CONTENEDOR DE PRECIOS: PRINCIPAL ARRIBA, DETALLES ABAJO LADO A LADO */}
               <div className="flex flex-col mt-1">
                 {/* Precio Principal */}
-                <div className="flex items-baseline gap-0.5">
+                <div className="flex items-baseline gap-0.5 -mt-3">
                   <span className="text-xl font-bold text-black dark:text-[#e9edef]">$</span>
                   <span className="text-4xl md:text-5xl font-black text-black dark:text-[#e9edef] tracking-tighter font-mono leading-tight">
                     {formatCurrency(minPrice)}
