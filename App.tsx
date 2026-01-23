@@ -35,14 +35,16 @@ const ProductDetailWrapper = ({ products, favorites, toggleFavorite, theme }: an
   if (!product) return null;
 
   return (
-    <ProductDetail
-      productId={product.id}
-      onClose={() => navigate(-1)}
-      onFavoriteToggle={toggleFavorite}
-      isFavorite={!!favorites[product.id]}
-      products={products}
-      theme={theme}
-    />
+    <ProductDetail 
+        productId={selectedProduct}
+        onClose={closeModal}
+        isFavorite={isFavorite(selectedProduct)}
+        onFavoriteToggle={handleFavoriteToggle}
+        products={products}
+        theme={theme}
+        quantities={quantities}
+        onUpdateQuantity={onUpdateQuantity}
+      />
   );
 };
 
