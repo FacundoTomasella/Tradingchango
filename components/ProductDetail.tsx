@@ -27,10 +27,12 @@ interface ProductDetailProps {
   isFavorite: boolean;
   products: Product[];
   theme: 'light' | 'dark';
+  // Props de cantidad (aseguramos que estén aquí)
   quantities?: Record<number, number>;
   onUpdateQuantity?: (id: number, delta: number) => void;
 }
 
+// Alias para evitar conflictos de tipos con Recharts en TS
 const AreaChartComponent = AreaChart as any;
 const AreaComponent = Area as any;
 const XAxisComponent = XAxis as any;
@@ -56,8 +58,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   isFavorite, 
   products, 
   theme,
-  quantities,
-  onUpdateQuantity 
+  quantities,      // Recibimos quantities
+  onUpdateQuantity // Recibimos onUpdateQuantity
 }) => {
   const [history, setHistory] = useState<PriceHistory[]>([]);
   const [days, setDays] = useState(7);
@@ -121,6 +123,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
     const filtered: ChartDataItem[] = history
       .filter(h => {
+        if (!h.fecha) return false;
         const [y, m, d] = h.fecha.split('T')[0].split('-').map(Number);
         return new Date(y, m - 1, d) >= limitDate;
       })
@@ -195,7 +198,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-xl border border-neutral-100 shadow-sm flex items-center justify-center p-2 shrink-0">
               <img src={product.imagen_url || ''} alt={product.nombre} className="w-full h-full object-contain" />
             </div>
-            <div className="flex flex-col flex-1 pt-1">
+            <div className="flex flex-col flex-1 pt-1 min-w-0"> {/* min-w-0 ayuda al grafico */}
               <h1 className="text-xl md:text-2xl font-black text-black dark:text-[#e9edef] leading-[1.1] mb-1 tracking-tighter uppercase break-words [hyphens:auto]" lang="es">
                 {product.nombre}
               </h1>
@@ -236,7 +239,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
           <hr className="w-full border-neutral-100 dark:border-[#233138] mb-4" />
 
-          {/* Selectores de días */}
+          {/* Selectores de dias */}
           <div className="w-full flex justify-center gap-1 mb-3 overflow-x-auto no-scrollbar pb-1">
             {[7, 15, 30, 90, 180, 365].map((d) => (
               <button 
@@ -260,11 +263,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                  <span className={`text-xs font-black px-1.5 py-0.5 rounded-md ${isTrendUp ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
                     {isTrendUp ? '▲' : '▼'} {Math.abs(percentageChange).toFixed(1)}%
                  </span>
-                 <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-widest">Variación en {days} días</span>
+                 <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-widest">
+                  Variación en {days} días</span>
               </div>
             </div>
             
-            <div className="h-44 md:h-52 w-full relative">
+            <div className="h-44 md:h-52 w-full relative min-h-[176px]">
               {chartData.length > 1 ? (
                 <ResponsiveContainerComponent width="100%" height="100%">
                   <AreaChartComponent data={chartData} margin={{ top: 5, right: 0, left: 12, bottom: 20 }}>
@@ -324,7 +328,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             </div>
           </div>
 
-          {/* Botón Fijo con Selector de Cantidad */}
+          {/* Boton Fijo con Cantidad */}
           <div className="w-full sticky bottom-0 bg-white/95 dark:bg-primary/95 backdrop-blur-md pt-2 pb-6 md:pb-4 px-4">
             <div className="flex gap-2">
               {isFavorite && onUpdateQuantity && (
