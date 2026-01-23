@@ -21,8 +21,8 @@ const slugify = (text: string) => {
     .replace(/--+/g, '-');    // Quitar guiones dobles
 };
 
-const ProductDetailWrapper = ({ products, favorites, toggleFavorite, theme }: any) => {
-  const { category, slug } = useParams(); // Ahora usamos categoría y slug
+const ProductDetailWrapper = ({ products, favorites, toggleFavorite, theme, onUpdateQuantity }: any) => {
+  const { category, slug } = useParams(); 
   const navigate = useNavigate();
   
   // Buscamos el producto por categoría y por el nombre transformado a slug
@@ -31,19 +31,21 @@ const ProductDetailWrapper = ({ products, favorites, toggleFavorite, theme }: an
     slugify(p.nombre) === slug
   );
 
-  if (!product && products.length > 0) return <Navigate to="/" replace />;
-  if (!product) return null;
+  // Si no hay productos cargados todavía, esperamos
+  if (products.length === 0) return null;
+  // Si terminó de cargar y no encontró el producto, volvemos al inicio
+  if (!product) return <Navigate to="/" replace />;
 
   return (
     <ProductDetail 
-        productId={selectedProduct}
-        onClose={closeModal}
-        isFavorite={isFavorite(selectedProduct)}
-        onFavoriteToggle={handleFavoriteToggle}
+        productId={product.id} // Antes decía selectedProduct (error)
+        onClose={() => navigate(-1)} // Antes decía closeModal (error)
+        isFavorite={!!favorites[product.id]}
+        onFavoriteToggle={toggleFavorite}
         products={products}
         theme={theme}
-        quantities={quantities}
-        onUpdateQuantity={onUpdateQuantity}
+        quantities={favorites} // Usamos el objeto de favoritos
+        onUpdateQuantity={onUpdateQuantity} // Pasamos la función de actualización
       />
   );
 };
@@ -573,14 +575,16 @@ useEffect(() => {
       />
     </>
   } />
-  <Route path="/:category/:slug" element={
-    <ProductDetailWrapper 
-      products={products} 
-      favorites={favorites} 
-      toggleFavorite={toggleFavorite} 
-      theme={theme} 
-    />
-  } />
+
+<Route path="/:category/:slug" element={
+  <ProductDetailWrapper 
+    products={products} 
+    favorites={favorites} 
+    toggleFavorite={toggleFavorite} 
+    theme={theme} 
+    onUpdateQuantity={handleFavoriteChangeInCart} 
+  />
+} />
   <Route path="/acerca-de" element={<AboutView onClose={() => navigate('/')} content={config.acerca_de} />} />
   <Route path="/terminos" element={<TermsView onClose={() => navigate('/')} content={config.terminos} />} />
   <Route path="/contacto" element={<ContactView onClose={() => navigate('/')} content={config.contacto} email={profile?.email} />} />
