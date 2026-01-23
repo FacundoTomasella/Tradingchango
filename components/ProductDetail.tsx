@@ -328,45 +328,47 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             </div>
           </div>
 
-          {/* Botón Fijo con Selector de Cantidad */}
-          <div className="w-full sticky bottom-0 bg-white/95 dark:bg-primary/95 backdrop-blur-md pt-2 pb-6 md:pb-4 px-4">
-            <div className="flex gap-2 h-12"> {/* Altura fija para que no salte al cambiar */}
-              
-              {/* Selector de Cantidad: Solo aparece si ya es favorito */}
-              {isFavorite && onUpdateQuantity && (
-                <div className="flex items-center bg-neutral-100 dark:bg-[#1f2c34] rounded-lg border border-neutral-200 dark:border-[#233138] overflow-hidden">
-                  <button 
-                    onClick={() => onUpdateQuantity(product.id, -1)}
-                    className="w-10 h-full flex items-center justify-center text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors"
-                  >
-                    <i className="fa-solid fa-minus text-xs"></i>
-                  </button>
-                  <span className="w-10 text-center font-mono font-black text-sm text-black dark:text-white">
-                    {quantities?.[product.id] || 1}
-                  </span>
-                  <button 
-                    onClick={() => onUpdateQuantity(product.id, 1)}
-                    className="w-10 h-full flex items-center justify-center text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors"
-                  >
-                    <i className="fa-solid fa-plus text-xs"></i>
-                  </button>
-                </div>
-              )}
+          {/* Botón Fijo con Selector de Cantidad Dinámico */}
+        <div className="w-full sticky bottom-0 bg-white/95 dark:bg-primary/95 backdrop-blur-md pt-2 pb-6 md:pb-4 px-4">
+          <div className="flex gap-2 h-12"> {/* Altura fija para evitar saltos visuales */}
+            
+            {/* SELECTOR DE CANTIDAD: Solo se muestra si isFavorite es true */}
+            {isFavorite && onUpdateQuantity && (
+              <div className="flex items-center bg-neutral-100 dark:bg-[#1f2c34] rounded-lg border border-neutral-200 dark:border-[#233138] overflow-hidden animate-in slide-in-from-left-2 duration-300">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onUpdateQuantity(product.id, -1); }}
+                  className="w-10 h-full flex items-center justify-center text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 active:scale-90 transition-all"
+                >
+                  <i className="fa-solid fa-minus text-[10px]"></i>
+                </button>
+                
+                <span className="w-8 text-center font-mono font-black text-sm text-black dark:text-white">
+                  {quantities?.[product.id] || 1}
+                </span>
+                
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onUpdateQuantity(product.id, 1); }}
+                  className="w-10 h-full flex items-center justify-center text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 active:scale-90 transition-all"
+                >
+                  <i className="fa-solid fa-plus text-[10px]"></i>
+                </button>
+              </div>
+            )}
 
-              {/* Botón Principal */}
-              <button 
-                onClick={() => onFavoriteToggle(product.id)} 
-                className={`flex-1 rounded-lg font-black uppercase tracking-[0.1em] text-xs flex items-center justify-center gap-2 active:scale-95 transition-all ${
-                  isFavorite 
-                    ? 'bg-star-gold text-white shadow-lg shadow-star-gold/20' 
-                    : 'bg-primary dark:bg-[#e9edef] text-white dark:text-black border dark:border-[#e9edef]'
-                }`}
-              >
-                <i className="fa-solid fa-cart-shopping"></i>
-                {isFavorite ? 'En el Chango' : 'Añadir al Chango'}
-              </button>
-            </div>
+            {/* BOTÓN PRINCIPAL */}
+            <button 
+              onClick={() => onFavoriteToggle(product.id)} 
+              className={`flex-1 rounded-lg font-black uppercase tracking-[0.1em] text-xs flex items-center justify-center gap-2 active:scale-95 transition-all ${
+                isFavorite 
+                  ? 'bg-star-gold text-white shadow-lg shadow-star-gold/20' 
+                  : 'bg-primary dark:bg-[#e9edef] text-white dark:text-black border dark:border-[#e9edef]'
+              }`}
+            >
+              <i className="fa-solid fa-cart-shopping"></i>
+              {isFavorite ? 'En el Chango' : 'Añadir al Chango'}
+            </button>
           </div>
+        </div>
         </div>
       </div>
     </div>
