@@ -56,7 +56,7 @@ const ProductList: React.FC<ProductListProps> = ({
 
   if (products.length === 0 && searchTerm) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 px-6 text-center animate-in fade-in zoom-in duration-500">
+      <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
         <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-900 rounded-xl flex items-center justify-center text-neutral-500 mb-4 text-lg">
           <i className="fa-solid fa-magnifying-glass"></i>
         </div>
@@ -68,7 +68,7 @@ const ProductList: React.FC<ProductListProps> = ({
 
   if (products.length === 0 && isCartView) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-6 text-center animate-in fade-in zoom-in duration-700">
+      <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
         <div className="w-14 h-14 bg-neutral-100 dark:bg-neutral-900 rounded-2xl flex items-center justify-center text-neutral-500 mb-4 text-2xl">
           <i className="fa-solid fa-cart-shopping"></i>
         </div>
@@ -79,14 +79,13 @@ const ProductList: React.FC<ProductListProps> = ({
   }
 
   return (
-    <div className="divide-neutral-100 dark:divide-neutral-900 border-neutral-100 dark:divide-neutral-900">
+    <div className="divide-neutral-100 dark:divide-neutral-900">
       {products.map((p) => {
         const fav = isFavorite(p.id);
         const purchased = purchasedItems?.has(p.id);
         const qty = quantities ? (quantities[p.id] || 1) : 1;
         const badges = getPromoBadges(p.oferta_gondola);
-        const contNum = (p as any).contenido_numerico || 0;
-        
+
         return (
           <div 
             key={p.id} 
@@ -128,59 +127,33 @@ const ProductList: React.FC<ProductListProps> = ({
                 <span className="font-mono font-[800] text-black dark:text-white text-[15px] leading-none">
                   ${format(p.stats.min)}
                 </span>
-                <span 
-                  className={`font-mono text-[12px] font-bold mt-0.5 ${p.stats.trendClass} leading-none`}
-                  style={{ transform: 'scale(1.05)' }}
-                >
+                <span className={`font-mono text-[12px] font-bold mt-0.5 ${p.stats.trendClass} leading-none`}>
                   {p.stats.icon} {p.stats.spread}%
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              {fav && onUpdateQuantity && !purchased && (
+              {/* SELECTOR DE CANTIDAD: Solo se muestra en la vista del Chango */}
+              {isCartView && onUpdateQuantity && !purchased && (
                 <div 
                   className="flex items-center bg-neutral-100 dark:bg-neutral-900 px-1 rounded-md border border-neutral-200 dark:border-neutral-800"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button 
-                    onClick={() => onUpdateQuantity(p.id, -1)} 
-                    className="text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white px-1.5 font-black text-[12px]"
-                  >
-                    -
-                  </button>
-                  <span className="font-mono text-[11px] font-black min-w-[14px] text-center text-black dark:text-white">
-                    {qty}
-                  </span>
-                  <button 
-                    onClick={() => onUpdateQuantity(p.id, 1)} 
-                    className="text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white px-1.5 font-black text-[12px]"
-                  >
-                    +
-                  </button>
+                  <button onClick={() => onUpdateQuantity(p.id, -1)} className="px-1.5 font-black text-[12px]">-</button>
+                  <span className="font-mono text-[11px] font-black min-w-[14px] text-center">{qty}</span>
+                  <button onClick={() => onUpdateQuantity(p.id, 1)} className="px-1.5 font-black text-[12px]">+</button>
                 </div>
               )}
               
-              {!fav && (
+              {/* ICONO DE CARRITO: Solo se muestra en los listados de categorías */}
+              {!isCartView && (
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
                     onFavoriteToggle(p.id);
                   }}
-                  className="text-neutral-300 dark:text-neutral-800 transition-all flex items-center justify-center active:scale-90 p-1.5"
-                  style={{ transform: 'scale(0.95)' }}
-                >
-                  <i className="fa-solid fa-cart-shopping text-[20px]"></i>
-                </button>
-              )}
-
-              {fav && !isCartView && (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onFavoriteToggle(p.id);
-                  }}
-                  className="text-star-gold p-1.5"
+                  className={`transition-all p-1.5 active:scale-90 ${fav ? 'text-star-gold' : 'text-neutral-300 dark:text-neutral-800'}`}
                 >
                   <i className="fa-solid fa-cart-shopping text-[20px]"></i>
                 </button>
