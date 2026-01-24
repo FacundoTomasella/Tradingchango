@@ -21,6 +21,70 @@ const slugify = (text: string) => {
     .replace(/--+/g, '-');    // Quitar guiones dobles
 };
 
+const calculateOutliers = (products: Product[]): Product[] => {
+  return products.map(product => {
+    const p_prices: number[] = [];
+    const pr_prices: number[] = [];
+
+    STORES.forEach(store => {
+      const p_key = store.key as keyof Product;
+      const pr_key = `pr_${store.key.split('_')[1]}` as keyof Product;
+
+      const p_price = product[p_key] as number;
+      if (p_price > 0) {
+        p_prices.push(p_price);
+      }
+
+      const pr_price = product[pr_key] as number;
+      if (pr_price > 0) {
+        pr_prices.push(pr_price);
+      }
+    });
+
+    const calculateMedian = (prices: number[]): number => {
+      if (prices.length === 0) return 0;
+      const sorted = [...prices].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      if (sorted.length % 2 === 0) {
+        return (sorted[mid - 1] + sorted[mid]) / 2;
+      }
+      return sorted[mid];
+    };
+
+    const p_median = calculateMedian(p_prices);
+    const pr_median = calculateMedian(pr_prices);
+
+    const outliers: { [key: string]: boolean } = {};
+
+    STORES.forEach(store => {
+      const storeKey = store.name.toLowerCase().replace(' ', '');
+      const p_key = store.key as keyof Product;
+      const pr_key = `pr_${store.key.split('_')[1]}` as keyof Product;
+
+      const p_price = product[p_key] as number;
+      if (p_median > 0 && p_price > 0) {
+        const p_deviation = Math.abs((p_price - p_median) / p_median);
+        if (p_deviation > 0.5) {
+          outliers[storeKey] = true;
+        }
+      }
+
+      const pr_price = product[pr_key] as number;
+      if (pr_median > 0 && pr_price > 0) {
+        const pr_deviation = Math.abs((pr_price - pr_median) / pr_median);
+        if (pr_deviation > 0.5) {
+          outliers[storeKey] = true;
+        }
+      }
+    });
+
+    return {
+      ...product,
+      outliers: JSON.stringify(outliers),
+    };
+  });
+};
+
 const ProductDetailWrapper = ({ products, favorites, toggleFavorite, theme, onUpdateQuantity }: any) => {
   const { category, slug } = useParams(); 
   const navigate = useNavigate();
@@ -175,7 +239,8 @@ const [config, setConfig] = useState<Record<string, string>>({});
         getPriceHistory(7),
         getConfig()
       ]);
-      setProducts(prodData || []);
+      const productsWithOutliers = calculateOutliers(prodData || []);
+      setProducts(productsWithOutliers || []);
       setHistory(histData || []);
       setConfig(configData || {});
 
