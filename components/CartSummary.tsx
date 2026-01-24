@@ -29,14 +29,14 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
 
   const results = useMemo(() => {
     return STORES.map((store) => {
-      let subtotalRegulares = 0;
-      let ahorroTotal = 0;
+      let sum_p = 0;
+      let sum_pr = 0;
       let hasAllItems = true;
 
       // Mapeo de nombres para las keys de Supabase
       const storeKeySuffix = store.name.toLowerCase().replace(' ', '');
-      const pKey = `p_${storeKeySuffix}`;   // Precio unitario oferta (ej: p_coto)
-      const prKey = `pr_${storeKeySuffix}`; // Precio lista (ej: pr_coto)
+      const pKey = `p_${storeKeySuffix}`;
+      const prKey = `pr_${storeKeySuffix}`;
 
       items.forEach(item => {
         const qty = favorites[item.id] || 1;
@@ -61,71 +61,18 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
           return; // STOCK INCOMPLETO
         }
         
-        // 1. SUBTOTAL: Siempre Precio Regular * Cantidad
-        subtotalRegulares += regularPrice * qty;
-
-        // 2 y 3. CALCULAR AHORRO BASADO EN LA ETIQUETA
-        let ahorroItem = 0;
-        const ofRaw = item.oferta_gondola;
-
-        if (ofRaw) {
-          try {
-            const ofObj = typeof ofRaw === 'string' ? JSON.parse(ofRaw) : ofRaw;
-            const promo = ofObj[storeKeySuffix];
-            const label = promo?.etiqueta?.toUpperCase() || "";
-
-            // CASO A: 2da UNIDAD AL % (ej: "50% en la 2da", "2da al 70%")
-            if (label.includes('2D') || label.includes('2DA')) {
-              // Buscamos el porcentaje en el texto (ej: extrae el 50 o el 70)
-              const porcentajeMatch = label.match(/(\d+)%/);
-              const porcentaje = porcentajeMatch ? parseInt(porcentajeMatch[1]) : 0;
-              
-              // Calculamos cuántos pares hay
-              const cantidadPares = Math.floor(qty / 2);
-              
-              // Ahorro = Cantidad de pares * Precio Regular * (Porcentaje / 100)
-              ahorroItem = cantidadPares * regularPrice * (porcentaje / 100);
-            } 
-            // CASO B: COMBOS CLÁSICOS (3X2, 4X3, 2X1)
-            else if (label.includes('X')) {
-              const comboMatch = label.match(/(\d+)\s*X\s*(\d+)/);
-              if (comboMatch) {
-                const pagas = parseInt(comboMatch[2]); // Ej en 3x2: pagas 2
-                const llevas = parseInt(comboMatch[1]); // Ej en 3x2: llevas 3
-                const unidadesRegaladasPorCombo = llevas - pagas; // Ej: 1 unidad gratis
-
-                const cantidadCombos = Math.floor(qty / llevas);
-                
-                // Ahorro = Combos completos * Unidades gratis * Precio Regular
-                ahorroItem = cantidadCombos * unidadesRegaladasPorCombo * regularPrice;
-              }
-            }
-            // CASO C: DESCUENTOS POR UMBRAL (LLEVANDO X UNIDADES) O PORCENTAJE DIRECTO
-            else if (regularPrice > effectivePrice) {
-              // Si no es un combo, pero hay diferencia de precio, aplicamos la diferencia
-              // Si dice "LLEVANDO", validamos el mínimo. Si no, aplica a todas (qty).
-              const minQtyMatch = label.match(/LLEVANDO\s*(\d+)/);
-              const minQty = minQtyMatch ? parseInt(minQtyMatch[1]) : 1;
-              
-              if (qty >= minQty) {
-                ahorroItem = (regularPrice - effectivePrice) * qty;
-              }
-            }
-          } catch (e) {
-            console.error("Error procesando promo", e);
-          }
-        }
-
-        ahorroTotal += ahorroItem;
+        sum_p += effectivePrice * qty;
+        sum_pr += regularPrice * qty;
       });
 
+      const ahorro = sum_pr - sum_p;
       const storeBenefits = benefits.filter(b => b.supermercado.toUpperCase() === store.name.toUpperCase());
       
       return { 
         name: store.name, 
-        subtotal: subtotalRegulares, 
-        gondolaDiscount: ahorroTotal,
-        totalChango: subtotalRegulares - ahorroTotal,
+        subtotal: sum_pr, 
+        gondolaDiscount: ahorro,
+        totalChango: sum_p,
         storeBenefits,
         hasAllItems
       };
