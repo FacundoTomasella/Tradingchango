@@ -300,15 +300,34 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               {STORES.map((s) => {
                 const price = (product as any)[s.key];
                 const url = (product as any)[s.url];
-                const storeKey = s.key.replace('p_', '').toLowerCase();
+                
+                // 1. Parsear Outliers
+                let outlierData: any = {};
+                try {
+                  outlierData = typeof product.outliers === 'string' 
+                    ? JSON.parse(product.outliers) 
+                    : (product.outliers || {});
+                } catch (e) { outlierData = {}; }
+
+                // 2. Validaciones
+                const storeKey = s.name.toLowerCase().replace(' ', '');
+                const isOutlier = outlierData[storeKey] === true;
+                const hasUrl = url && url !== '#' && url.length > 5;
+
+                // 3. Renderizado condicional
+                if (!price || price <= 0 || isOutlier || !hasUrl) {
+                  return null;
+                }
+
+                const storeColors: any = { COTO: 'bg-red-500', CARREFOUR: 'bg-blue-500', DIA: 'bg-red-500', JUMBO: 'bg-green-500', 'MAS ONLINE': 'bg-green-500' };
+                
+                // Sacamos la promo de la góndola
                 let ofertaData: any = {};
                 try {
                   const rawOferta = (product as any).oferta_gondola;
                   ofertaData = typeof rawOferta === 'string' ? JSON.parse(rawOferta) : rawOferta;
                 } catch (e) { ofertaData = {}; }
                 const promo = ofertaData?.[storeKey]?.etiqueta;
-                if (!price || price <= 0) return null;
-                const storeColors: any = { COTO: 'bg-red-500', CARREFOUR: 'bg-blue-500', DIA: 'bg-red-500', JUMBO: 'bg-green-500', 'MAS ONLINE': 'bg-green-500' };
 
                 return (
                   <div key={s.name} className="flex items-center justify-between py-1.5 border-b border-neutral-50 dark:border-[#233138] last:border-0">

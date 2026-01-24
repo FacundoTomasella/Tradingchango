@@ -41,15 +41,26 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
       items.forEach(item => {
         const qty = favorites[item.id] || 1;
         
-        // Tomamos los precios directamente de las columnas pr_ y p_
+        // Parsear outliers
+        let outlierData: any = {};
+        try {
+          outlierData = typeof item.outliers === 'string' ? JSON.parse(item.outliers) : (item.outliers || {});
+        } catch (e) { outlierData = {}; }
+
+        // Tomamos precios y URL
         const effectivePrice = (item as any)[pKey] || 0;
         const regularPrice = (item as any)[prKey] || effectivePrice;
+        const url = (item as any)[`url_${storeKeySuffix}`];
 
-        if (effectivePrice <= 0) {
+        // Validaciones
+        const isOutlier = outlierData[storeKeySuffix] === true;
+        const hasUrl = url && url !== '#' && url.length > 5;
+
+        if (effectivePrice <= 0 || isOutlier || !hasUrl) {
           hasAllItems = false;
-          return;
+          return; // STOCK INCOMPLETO
         }
-
+        
         // 1. SUBTOTAL: Siempre Precio Regular * Cantidad
         subtotalRegulares += regularPrice * qty;
 

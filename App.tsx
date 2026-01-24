@@ -50,6 +50,14 @@ const ProductDetailWrapper = ({ products, favorites, toggleFavorite, theme, onUp
   );
 };
 
+const STORES = [
+  { name: "COTO", key: 'p_coto', url: 'url_coto' },
+  { name: "CARREFOUR", key: 'p_carrefour', url: 'url_carrefour' },
+  { name: "DIA", key: 'p_dia', url: 'url_dia' },
+  { name: "JUMBO", key: 'p_jumbo', url: 'url_jumbo' },
+  { name: "MAS ONLINE", key: 'p_masonline', url: 'url_masonline' }
+] as const;
+
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [history, setHistory] = useState<PriceHistory[]>([]);
@@ -302,7 +310,28 @@ useEffect(() => {
   const filteredProducts = useMemo(() => {
     const currentPath = location.pathname;
     let result = products.map(p => {
-      const prices = [p.p_coto, p.p_carrefour, p.p_dia, p.p_jumbo, p.p_masonline];
+      // 1. Parsear el JSON de outliers
+      let outlierData: any = {};
+      try {
+        outlierData = typeof p.outliers === 'string' ? JSON.parse(p.outliers) : (p.outliers || {});
+      } catch (e) { outlierData = {}; }
+
+      // 2. Construir el array de precios FILTRADO
+      const prices = STORES.map(s => {
+        const storeKey = s.name.toLowerCase().replace(' ', ''); // coto, carrefour, etc.
+        const price = (p as any)[s.key] || 0;
+        const url = (p as any)[s.url];
+
+        // VALIDACIÓN: ¿Es outlier? ¿Tiene URL válida?
+        const isOutlier = outlierData[storeKey] === true;
+        const hasUrl = url && url !== '#' && url.length > 5;
+
+        if (price > 0 && hasUrl && !isOutlier) {
+          return price;
+        }
+        return 0; // Se ignora
+      });
+
       const h7 = history.find(h => h.nombre_producto === p.nombre);
       return { ...p, stats: getStats(prices, h7?.precio_minimo || 0), prices };
     })

@@ -17,7 +17,8 @@ export interface Product {
   imagen_url?: string;
   oferta_gondola?: any;
   unidad_medida?: string;      
-  contenido_numerico?: number; 
+  contenido_numerico?: number;
+  outliers?: string; 
 }
 
 export interface PriceHistory {
