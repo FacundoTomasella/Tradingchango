@@ -127,11 +127,11 @@ const Header: React.FC<HeaderProps> = ({
       )}
 
       {showHero && (
-       <div className="flex flex-col items-center mt-4 px-4">
-  <h2 className="text-[4.8vw] sm:text-[22px] font-[800] text-black dark:text-white leading-none tracking-tighter font-sans whitespace-nowrap">
-  Los precios del súper como nunca los viste
-</h2>
-  <p className="mt-1 text-[13px] text-neutral-500 font-medium text-center">
+       <div className="flex flex-col items-center mt-6 mb-2 px-4 w-full overflow-hidden">
+  <h2 className="text-[4.5vw] xs:text-[18px] sm:text-[22px] font-[800] text-black dark:text-white leading-none tracking-tighter font-sans whitespace-nowrap">
+    Los precios del súper como nunca los viste
+  </h2>
+  <p className="mt-1.5 text-[12px] sm:text-sm text-neutral-500 dark:text-neutral-400 font-medium text-center tracking-tight">
     Analizá tendencias y compará antes de comprar
   </p>
 </div>
