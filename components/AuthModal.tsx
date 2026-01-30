@@ -188,7 +188,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
     const isSelected = current.some(m => m.slug === slug && m.tipo === tipo);
     const next = isSelected 
       ? current.filter(m => !(m.slug === slug && m.tipo === tipo))
-      : [...current, { slug, tipo }];
+      : [...current, { slug, tipo, banco: '', tarjeta: '', categoria_tarjeta: '' }];
     setLoading(true);
     try {
       await updateMemberships(user.id, next);
@@ -339,7 +339,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
                           <span className="text-[11px] font-bold dark:text-white uppercase tracking-tight">{m.nombre}</span>
                         </div>
                         <div className="flex flex-wrap gap-2 ml-10">
-                          {m.opciones && m.opciones.length > 0 ? m.opciones.map(opt => {
+                          {m.opciones && m.opciones.length > 0 ? m.opciones.map((opt: string) => {
                             const active = profile?.membresias?.some(um => um.slug === m.slug && um.tipo === opt);
                             return (
                               <button key={opt} onClick={() => toggleMembership(m.slug, opt)} className={`text-[9px] font-black px-3 py-1.5 rounded-lg border transition-all ${active ? 'bg-green-500 text-white border-green-500 shadow-md' : 'bg-neutral-50 dark:bg-neutral-900 text-neutral-400 border-neutral-100 dark:border-neutral-800'}`}>{opt}</button>

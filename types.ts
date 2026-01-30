@@ -1,75 +1,89 @@
-
 export interface Product {
   id: number;
   nombre: string;
+  marca: string;
   categoria: string;
-  ticker?: string;
-  p_coto: number;
-  p_carrefour: number;
-  p_dia: number;
+  subcategoria: string;
+  subsubcategoria: string;
+  fecha_actualizacion: string;
+  url_jumbo: string;
   p_jumbo: number;
-  p_masonline: number;
-  stock_coto?: boolean;
-  stock_carrefour?: boolean;
-  stock_dia?: boolean;
-  stock_jumbo?: boolean;
-  stock_masonline?: boolean;
-  url_coto?: string;
-  url_carrefour?: string;
-  url_dia?: string;
-  url_jumbo?: string;
-  url_masonline?: string;
+  pr_jumbo: number;
+  stock_jumbo: boolean;
+  url_carrefour: string;
+  p_carrefour: number;
+  pr_carrefour: number;
+  stock_carrefour: boolean;
+  url_coto: string;
+  p_coto: number;
+  pr_coto: number;
+  stock_coto: boolean;
+  url_dia: string;
+  p_dia: number;
+  pr_dia: number;
+  stock_dia: boolean;
+  url_disco: string;
+  p_disco: number;
+  pr_disco: number;
+  stock_disco: boolean;
+  url_vea: string;
+  p_vea: number;
+  pr_vea: number;
+  stock_vea: boolean;
+  url_laanonima: string;
+  p_laanonima: number;
+  pr_laanonima: number;
+  stock_laanonima: boolean;
+  oferta_gondola: {
+    [key: string]: string;
+  };
+  eans: string[];
   imagen_url?: string;
-  oferta_gondola?: any;
-  unidad_medida?: string;      
-  contenido_numerico?: number;
-  outliers?: string; 
+  outliers?: string | object;
+  ticker?: string;
 }
 
-export interface PriceHistory {
+export interface CartItem extends Product {
+  quantity: number;
+}
+
+export interface Benefit {
   id: number;
-  fecha: string;
-  nombre_producto: string;
-  precio_minimo: number;
+  nombre: string;
   supermercado: string;
+  descripcion: string;
+  tipo_descuento: string;
+  valor_descuento: number;
+  condiciones: string;
+  dias_semana: string[];
+  url_beneficio: string;
+  banco: string;
+  tarjeta: string;
+  categoria_tarjeta: string;
+  tipo_pago: string;
+  activo: boolean;
+  entidad_nombre: string;
+  link_referido?: string;
+  descuento: number;
+}
+
+export interface UserMembership {
+  banco: string;
+  tarjeta: string;
+  categoria_tarjeta: string;
+  slug: string;
+  tipo: string;
 }
 
 export interface Membership {
   slug: string;
   nombre: string;
-  categoria: string;
   logo_url: string;
-  opciones: string[];
+  categoria?: string;
+  opciones?: string[];
 }
 
-export interface UserMembership {
-  slug: string;
-  tipo: string;
-}
-
-export interface Profile {
-  id: string;
-  email: string;
-  nombre?: string;
-  apellido?: string;
-  fecha_nacimiento?: string;
-  subscription: 'free' | 'pro' | 'premium';
-  created_at: string;
-  membresias: UserMembership[];
-  subscription_end?: string | null;
-  last_cart?: any;
-}
-
-export interface Benefit {
-  id: number;
-  dia_semana: number;
-  supermercado: string;
-  entidad_nombre: string;
-  descuento: number;
-  link_referido?: string;
-}
-
-export type TabType = 'home' | 'carnes' | 'verdu' | 'varios' | 'chango' | 'about' | 'terms' | 'contact';
+export type TabType = 'home' | 'chango' | 'carnes' | 'verdu' | 'varios';
 
 export interface ProductStats {
   min: number;
@@ -78,4 +92,20 @@ export interface ProductStats {
   icon: string;
   isUp: boolean;
   isDown: boolean;
+}
+
+export interface PriceHistory {
+  nombre_producto: string;
+  precio_minimo: number;
+  fecha: string;
+  supermercado: string;
+}
+
+export interface Profile {
+  id: string;
+  subscription: 'free' | 'pro';
+  subscription_end: string | null;
+  membresias: UserMembership[];
+  nombre?: string;
+  email?: string;
 }

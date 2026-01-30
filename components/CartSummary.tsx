@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Product, Benefit, UserMembership } from '../types';
+import { CartItem, Benefit, UserMembership } from '../types';
+import { calculateStoreTotal } from '../utils/calculateStoreTotal';
 
 interface CartSummaryProps {
-  items: any[];
-  favorites: Record<number, number>;
+  items: CartItem[];
   benefits: Benefit[];
   userMemberships?: UserMembership[];
   onSaveCart?: (name: string) => void;
@@ -13,75 +13,50 @@ interface CartSummaryProps {
   onDeleteCart: (index: number) => void;
 }
 
-const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, userMemberships = [], onSaveCart, canSave, savedCarts, onLoadCart, onDeleteCart }) => {
+const CartSummary: React.FC<CartSummaryProps> = ({ items, benefits, userMemberships = [], onSaveCart, canSave, savedCarts, onLoadCart, onDeleteCart }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [newCartName, setNewCartName] = useState('');
   const [showSaveInput, setShowSaveInput] = useState(false);
   const format = (n: number) => new Intl.NumberFormat('es-AR').format(n);
 
   const STORES = [
-    { name: "COTO", index: 0 },
-    { name: "CARREFOUR", index: 1 },
-    { name: "DIA", index: 2 },
-    { name: "JUMBO", index: 3 },
-    { name: "MASONLINE", index: 4 }
+    { name: "COTO", key: "coto" },
+    { name: "CARREFOUR", key: "carrefour" },
+    { name: "DIA", key: "dia" },
+    { name: "JUMBO", key: "jumbo" },
+    { name: "MASONLINE", key: "masonline" }
   ];
 
   const results = useMemo(() => {
-    return STORES.map((store) => {
-      let sum_p = 0;
-      let sum_pr = 0;
-      let hasAllItems = true;
+    const storeResults = STORES.map((store) => {
+      const storeKey = store.key as keyof typeof store;
+      const total = calculateStoreTotal(items, store.key);
+      const regularTotal = items.reduce((sum, item) => {
+        const regularPrice = item[`pr_${store.key}` as keyof CartItem] as number;
+        return sum + (regularPrice || 0) * item.quantity;
+      }, 0);
 
-      // Mapeo de nombres para las keys de Supabase
-      const storeKeySuffix = store.name.toLowerCase().replace(' ', '');
-      const pKey = `p_${storeKeySuffix}`;
-      const prKey = `pr_${storeKeySuffix}`;
-
-      items.forEach(item => {
-        const qty = favorites[item.id] || 1;
-        
-        // Parsear outliers
-        let outlierData: any = {};
-        try {
-          outlierData = typeof item.outliers === 'string' ? JSON.parse(item.outliers) : (item.outliers || {});
-        } catch (e) { outlierData = {}; }
-
-        // Tomamos precios y URL
-        const effectivePrice = (item as any)[pKey] || 0;
-        const regularPrice = (item as any)[prKey] || effectivePrice;
-        const url = (item as any)[`url_${storeKeySuffix}`];
-        const stockKey = `stock_${storeKeySuffix}`;
-        const hasStock = (item as any)[stockKey] !== false;
-
-        // Validaciones
-        const isOutlier = outlierData[storeKeySuffix] === true;
-        const hasUrl = url && url !== '#' && url.length > 5;
-
-        if (effectivePrice <= 0 || isOutlier || !hasUrl || !hasStock) {
-          hasAllItems = false;
-          return; // STOCK INCOMPLETO
-        }
-        
-        sum_p += effectivePrice * qty;
-        sum_pr += regularPrice * qty;
+      const hasAllItems = items.every(item => {
+        const price = item[`p_${store.key}` as keyof CartItem] as number;
+        const url = item[`url_${store.key}` as keyof CartItem] as string;
+        const stock = item[`stock_${store.key}` as keyof CartItem] as boolean;
+        return price > 0 && url && url !== '#' && url.length > 5 && stock !== false;
       });
-
-      const ahorro = sum_pr - sum_p;
-      const storeBenefits = benefits.filter(b => b.supermercado.toUpperCase() === store.name.toUpperCase());
       
       return { 
-        name: store.name, 
-        subtotal: sum_pr, 
-        gondolaDiscount: ahorro,
-        totalChango: sum_p,
-        storeBenefits,
+        name: store.name,
+        total,
+        regularTotal,
+        savings: regularTotal - total,
+        storeBenefits: benefits.filter(b => b.supermercado.toUpperCase() === store.name.toUpperCase()),
         hasAllItems
       };
-    })
-    .filter(r => r.hasAllItems && items.length > 0)
-    .sort((a, b) => a.totalChango - b.totalChango);
-  }, [items, favorites, benefits]);
+    });
+
+    return storeResults
+      .filter(r => r.hasAllItems && items.length > 0)
+      .sort((a, b) => a.total - b.total);
+  }, [items, benefits]);
 
   if (items.length === 0) return null;
 
@@ -102,7 +77,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
   const best = results[0];
   const others = results.slice(1);
   const worstOption = results.length > 1 ? results[results.length - 1] : best;
-  const potentialSavings = worstOption.totalChango - best.totalChango;
+  const potentialSavings = worstOption.total - best.total;
 
   const paymentAdvice = useMemo(() => {
     if (!best.storeBenefits.length) return null;
@@ -123,7 +98,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
         <div className="flex flex-col gap-3 relative z-10">
           
           <div className="flex flex-col items-center gap-2 text-center">
-            <span className="text-black dark:text-[#8696a0] text-xs font-black uppercase tracking-[0.15em]">Tu Mejor opción</span>
+            <span className="text-black dark:text-neutral-200 text-sm font-black uppercase tracking-[0.15em]">Tu Mejor opción</span>
             
             <div className="flex items-baseline justify-center gap-6 w-full">
               <h2 className="text-xl font-black text-black dark:text-[#e9edef] uppercase tracking-tighter leading-none flex items-center gap-2">
@@ -139,7 +114,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
             <div className="border-t border-neutral-100 dark:border-[#233138] pt-2 w-full mt-2">
               <span className="text-[10px] font-black uppercase text-neutral-500 dark:text-[#8696a0] tracking-[0.15em] block mb-1">Total Estimado:*</span>
               <div className="text-4xl font-black text-black dark:text-[#e9edef] tracking-tighter font-mono leading-none">
-                ${format(Math.round(best.totalChango))}
+                ${format(Math.round(best.total))}
               </div>
             </div>
           </div>
@@ -148,11 +123,11 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
           <div className="bg-neutral-50 dark:bg-[#1f2c34] rounded-xl p-3 space-y-1.5 border dark:border-[#233138]">
             <div className="flex justify-between items-center text-[12px] font-bold uppercase tracking-tight">
               <span className="text-black dark:text-[#e9edef]">Subtotal:</span>
-              <span className="text-[12px] text-black dark:text-[#e9edef] font-mono">${format(Math.round(best.subtotal))}</span>
+              <span className="text-[12px] text-black dark:text-[#e9edef] font-mono">${format(Math.round(best.regularTotal))}</span>
             </div>
             <div className="flex justify-between items-center text-[12px] font-bold uppercase tracking-tight">
               <span className="text-black dark:text-[#e9edef]">Descuentos:</span>
-              <span className="text-[12px] text-green-500 font-mono">-$ {format(Math.round(best.gondolaDiscount))}</span>
+              <span className="text-[12px] text-green-500 font-mono">-$ {format(Math.round(best.savings))}</span>
             </div>
           </div>
 
@@ -209,8 +184,8 @@ const CartSummary: React.FC<CartSummaryProps> = ({ items, favorites, benefits, u
                 <div key={store.name} className="flex justify-between items-center py-2 px-4 bg-neutral-50/50 dark:bg-[#1f2c34] rounded-lg border border-neutral-100 dark:border-[#233138]">
                   <span className="text-[10px] font-black text-neutral-600 dark:text-[#8696a0] uppercase">{store.name}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-red-500 font-mono">+${format(Math.round(store.totalChango - best.totalChango))}</span>
-                    <span className="font-mono text-[12px] font-black text-black dark:text-[#e9edef]">${format(Math.round(store.totalChango))}</span>
+                    <span className="text-[10px] font-bold text-red-500 font-mono">+${format(Math.round(store.total - best.total))}</span>
+                    <span className="font-mono text-[12px] font-black text-black dark:text-[#e9edef]">${format(Math.round(store.total))}</span>
                   </div>
                 </div>
               ))}

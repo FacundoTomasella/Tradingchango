@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase, getProducts, getPriceHistory, getProfile, getConfig, getBenefits, getSavedCartData, saveCartData } from './services/supabase';
-import { Product, PriceHistory, Profile, TabType, ProductStats, Benefit } from './types';
+import { Product, PriceHistory, Profile, TabType, ProductStats, Benefit, CartItem } from './types';
+import { calculateStoreTotal } from './utils/calculateStoreTotal';
 import Header from './components/Header';
 import ProductList from './components/ProductList';
 import BottomNav from './components/BottomNav';
@@ -91,7 +92,7 @@ const ProductDetailWrapper = ({ products, favorites, toggleFavorite, theme, onUp
   
   // Buscamos el producto por categoría y por el nombre transformado a slug
   const product = products.find((p: any) => 
-    p.categoria?.toLowerCase() === category?.toLowerCase() && 
+    slugify(p.categoria || 'general') === category && 
     slugify(p.nombre) === slug
   );
 
@@ -410,8 +411,29 @@ useEffect(() => {
 
     if (currentPath === '/carnes') result = result.filter(p => p.categoria?.toLowerCase().includes('carne'));
     else if (currentPath === '/verdu') result = result.filter(p => p.categoria?.toLowerCase().includes('verdu') || p.categoria?.toLowerCase().includes('fruta'));
-    else if (currentPath === '/varios') result = result.filter(p => !p.categoria?.toLowerCase().includes('carne') && !p.categoria?.toLowerCase().includes('verdu'));
-    else if (currentPath === '/chango') result = result.filter(p => favorites[p.id]);
+    else if (currentPath === '/bebidas') result = result.filter(p => p.categoria?.toLowerCase().includes('bebida'));
+    else if (currentPath === '/varios') {
+      const excludedCategories = ['carne', 'verdu', 'fruta', 'bebida'];
+      result = result.filter(p => {
+        const cat = p.categoria?.toLowerCase() || '';
+        return !excludedCategories.some(excluded => cat.includes(excluded));
+      });
+    }
+    if (currentPath === '/chango') {
+      const cartItems: CartItem[] = result
+        .filter(p => favorites[p.id])
+        .map(p => ({ ...p, quantity: favorites[p.id] || 1 }));
+      
+      const storeTotals = STORES.map(store => {
+        const storeKey = store.name.toLowerCase().replace(' ', '');
+        return {
+          name: store.name,
+          total: calculateStoreTotal(cartItems, storeKey)
+        };
+      });
+
+      result = result.filter(p => favorites[p.id]);
+    }
 
     if (searchTerm) {
       const t = searchTerm.toLowerCase();
@@ -488,6 +510,22 @@ useEffect(() => {
     setPurchasedItems(new Set());
     navigate('/chango');
   };
+
+  const scrollPositionRef = useRef(0);
+
+  const handleProductClick = (product: Product) => {
+    scrollPositionRef.current = window.scrollY;
+    const categorySlug = slugify(product.categoria || 'general');
+    const productSlug = slugify(product.nombre);
+    navigate(`/${categorySlug}/${productSlug}`);
+  };
+
+  useEffect(() => {
+    const listPaths = ['/', '/chango', '/carnes', '/verdu', '/varios'];
+    if (listPaths.includes(location.pathname)) {
+      window.scrollTo(0, scrollPositionRef.current);
+    }
+  }, [location.pathname]);
 
   const handleSignOut = async () => {
   setLoading(true);
@@ -573,11 +611,8 @@ useEffect(() => {
         <Routes>
   <Route path="/" element={
     <ProductList 
-      products={filteredProducts as any} 
-      onProductClick={(id: number) => {
-        const p = products.find(x => x.id === id);
-        if (p) navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`);
-      }}
+      products={filteredProducts} 
+      onProductClick={handleProductClick}
       onFavoriteToggle={toggleFavorite} 
       isFavorite={id => !!favorites[id]}
       isCartView={false} 
@@ -590,11 +625,8 @@ useEffect(() => {
   } />
   <Route path="/carnes" element={
     <ProductList 
-      products={filteredProducts as any} 
-      onProductClick={(id: number) => {
-        const p = products.find(x => x.id === id);
-        if (p) navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`);
-      }}
+      products={filteredProducts} 
+      onProductClick={handleProductClick}
       onFavoriteToggle={toggleFavorite} 
       isFavorite={id => !!favorites[id]}
       isCartView={false} 
@@ -607,11 +639,8 @@ useEffect(() => {
   } />
   <Route path="/verdu" element={
     <ProductList 
-      products={filteredProducts as any} 
-      onProductClick={(id: number) => {
-        const p = products.find(x => x.id === id);
-        if (p) navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`);
-      }}
+      products={filteredProducts} 
+      onProductClick={handleProductClick}
       onFavoriteToggle={toggleFavorite} 
       isFavorite={id => !!favorites[id]}
       isCartView={false} 
@@ -624,11 +653,8 @@ useEffect(() => {
   } />
   <Route path="/varios" element={
     <ProductList 
-      products={filteredProducts as any} 
-      onProductClick={(id: number) => {
-        const p = products.find(x => x.id === id);
-        if (p) navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`);
-      }}
+      products={filteredProducts} 
+      onProductClick={handleProductClick}
       onFavoriteToggle={toggleFavorite} 
       isFavorite={id => !!favorites[id]}
       isCartView={false} 
@@ -643,8 +669,7 @@ useEffect(() => {
     <>
       {filteredProducts.length > 0 && (
         <CartSummary 
-          items={filteredProducts} 
-          favorites={favorites} 
+          items={filteredProducts.map(p => ({ ...p, quantity: favorites[p.id] || 1 }))}
           benefits={benefits} 
           userMemberships={profile?.membresias} 
           onSaveCart={handleSaveCurrentCart}
@@ -655,11 +680,8 @@ useEffect(() => {
         />
       )}
       <ProductList 
-        products={filteredProducts as any} 
-        onProductClick={(id: number) => {
-          const p = products.find(x => x.id === id);
-          if (p) navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`);
-        }}                
+        products={filteredProducts} 
+        onProductClick={handleProductClick}                
         onFavoriteToggle={toggleFavorite} 
         isFavorite={id => !!favorites[id]}
         isCartView={true} 
@@ -686,11 +708,8 @@ useEffect(() => {
   <Route path="/contacto" element={<ContactView onClose={() => navigate('/')} content={config.contacto} email={profile?.email} />} />
   <Route path="/update-password" element={
       <ProductList 
-        products={filteredProducts as any} 
-        onProductClick={(id: number) => {
-          const p = products.find(x => x.id === id);
-          if (p) navigate(`/${p.categoria?.toLowerCase() || 'producto'}/${slugify(p.nombre)}`);
-        }}
+        products={filteredProducts} 
+        onProductClick={handleProductClick}
         onFavoriteToggle={toggleFavorite} 
         isFavorite={id => !!favorites[id]}
         isCartView={false} 
