@@ -16,32 +16,42 @@ const getThreshold = (oferta: string): number => {
 
 export const calculateStoreTotal = (cartItems: CartItem[], storeKey: string): number => {
   return cartItems.reduce((total, item) => {
-    const pPromo = item[`p_${storeKey}` as keyof CartItem] as number; // Precio con descuento aplicado
-    const pRegular = item[`pr_${storeKey}` as keyof CartItem] as number; // Precio de lista (tachado)
+    // p_ es el precio con descuento aplicado (el que debería figurar en góndola)
+    const pPromo = item[`p_${storeKey}` as keyof CartItem] as number; 
+    // pr_ es el precio base sin ninguna promoción
+    const pRegular = item[`pr_${storeKey}` as keyof CartItem] as number; 
     const oferta = item.oferta_gondola[storeKey as keyof typeof item.oferta_gondola] || "";
     
-    if (!pPromo) return total;
+    // Si no hay precio cargado, no sumamos nada
+    if (pPromo === null || pPromo === undefined || pPromo === 0) return total;
 
     const threshold = getThreshold(oferta);
     const quantity = item.quantity;
 
-    // CASO 1: No hay oferta (threshold 1)
-    // Se cobra siempre el precio con descuento (p_) sin importar la cantidad.
+    // --- LÓGICA DE CÁLCULO ---
+
+    // CASO A: El producto NO tiene una oferta de "lleve X unidades" (ej: Coto)
     if (threshold <= 1) {
+      // Se cobra la cantidad total al precio p_ (que ya es el más bajo)
       return total + (quantity * pPromo);
     }
 
-    // CASO 2: Hay oferta (2x1, 3x2, 2do al 80%, etc.)
+    // CASO B: El producto SI tiene una oferta (2x1, 3x2, 2do al 70%, etc.)
     if (quantity >= threshold) {
-      // Si cumple la cantidad de la promo:
+      // Calculamos cuántas unidades completan los combos de la promo
+      // Ejemplo: 2x1 y lleva 3 unidades -> unitsInPromo = 2
       const unitsInPromo = Math.floor(quantity / threshold) * threshold;
-      const remainingUnits = quantity % threshold;
       
-      // Los combos van a precio p_, el resto al precio "caro" pr_
-      return total + (unitsInPromo * pPromo) + (remainingUnits * pRegular);
+      // Calculamos el sobrante que no entra en la promo
+      // Ejemplo: 2x1 y lleva 3 unidades -> remainingUnits = 1
+      const remainingUnits = quantity % threshold;
+
+      // El subtotal es: (las que entran en promo * p_) + (las que sobran * pr_)
+      const subtotal = (unitsInPromo * pPromo) + (remainingUnits * pRegular);
+      return total + subtotal;
     } else {
-      // Si NO cumple la cantidad mínima de la promo (ej: lleva 1 en un 3x2)
-      // Se cobra el precio regular (pr_)
+      // CASO C: Tiene promo pero no llega a la cantidad mínima (ej: lleva 1 y la promo es 2x1)
+      // Se cobra el precio regular pr_
       return total + (quantity * pRegular);
     }
   }, 0);
