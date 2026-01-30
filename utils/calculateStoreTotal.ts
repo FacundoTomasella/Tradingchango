@@ -16,26 +16,33 @@ const getThreshold = (oferta: string): number => {
 
 export const calculateStoreTotal = (cartItems: CartItem[], storeKey: string): number => {
   return cartItems.reduce((total, item) => {
-    const pPromo = item[`p_${storeKey}` as keyof CartItem] as number;
-    const pRegular = item[`pr_${storeKey}` as keyof CartItem] as number;
+    const pPromo = item[`p_${storeKey}` as keyof CartItem] as number; // Precio con descuento aplicado
+    const pRegular = item[`pr_${storeKey}` as keyof CartItem] as number; // Precio de lista (tachado)
     const oferta = item.oferta_gondola[storeKey as keyof typeof item.oferta_gondola] || "";
     
-    // Si no hay precio, sumamos 0 (el filtro hasAllItems se encargará de descartar la tienda)
-    if (!pPromo && !pRegular) return total;
+    if (!pPromo) return total;
 
-    // Si el pr_ no existe (a veces la API no lo manda), usamos p_ como base
-    const basePrice = pRegular || pPromo;
     const threshold = getThreshold(oferta);
     const quantity = item.quantity;
 
-    if (threshold > 1 && quantity >= threshold) {
+    // CASO 1: No hay oferta (threshold 1)
+    // Se cobra siempre el precio con descuento (p_) sin importar la cantidad.
+    if (threshold <= 1) {
+      return total + (quantity * pPromo);
+    }
+
+    // CASO 2: Hay oferta (2x1, 3x2, 2do al 80%, etc.)
+    if (quantity >= threshold) {
+      // Si cumple la cantidad de la promo:
       const unitsInPromo = Math.floor(quantity / threshold) * threshold;
       const remainingUnits = quantity % threshold;
-      // Múltiplos van con p_, el resto con el precio base
-      return total + (unitsInPromo * pPromo) + (remainingUnits * basePrice);
+      
+      // Los combos van a precio p_, el resto al precio "caro" pr_
+      return total + (unitsInPromo * pPromo) + (remainingUnits * pRegular);
     } else {
-      // Si no hay promo o no llega a la cantidad mínima
-      return total + (quantity * basePrice);
+      // Si NO cumple la cantidad mínima de la promo (ej: lleva 1 en un 3x2)
+      // Se cobra el precio regular (pr_)
+      return total + (quantity * pRegular);
     }
   }, 0);
 };
