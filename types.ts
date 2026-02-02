@@ -37,7 +37,7 @@ export interface Product {
   oferta_gondola: {
     [key: string]: string;
   };
-  eans: string[];
+  ean: string[];
   imagen_url?: string;
   outliers?: string | object;
   ticker?: string;
