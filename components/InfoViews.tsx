@@ -76,11 +76,11 @@ export const ContactView: React.FC<InfoViewProps & { email?: string }> = ({ onCl
     <h1 className="text-4xl font-black text-black dark:text-white mb-6 tracking-tighter">Contacto</h1>
     <div className="space-y-5 text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">
   <p className="text-black dark:text-white font-bold text-lg">
-    ¿Tenés una sugerencia, detectaste un error o querés ponerte en contacto?
+    ¿Tenés una sugerencia, detectaste un error o te interesa colaborar con TradingChango?
   </p>
   
   <p>
-    En <b className="text-black dark:text-white">TradingChango</b> valoramos el feedback de los usuarios y también recibimos consultas relacionadas con colaboraciones, publicidad o proyectos profesionales afines.
+    Estamos abiertos a propuestas de publicidad, alianzas, integraciones y proyectos profesionales vinculados a datos, consumo y tecnología.
   </p>
   
   <p>
