@@ -71,9 +71,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     if (product) {
       document.title = `${product.nombre} - TradingChango`;
 
-      // Registrar visita en Supabase
+      // Registrar visita usando el nuevo nombre de función RPC
       if (product.ean) {
-        supabase.rpc('incrementar_visita', { 
+        supabase.rpc('visitas', { 
           producto_ean: product.ean.toString() 
         }).catch(err => console.error("Error al registrar visita:", err));
       }
