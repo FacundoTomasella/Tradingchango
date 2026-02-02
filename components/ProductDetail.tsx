@@ -70,6 +70,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   useEffect(() => {
     if (product) {
       document.title = `${product.nombre} - TradingChango`;
+
+      // Registrar visita en Supabase
+      if (product.ean) {
+        supabase.rpc('incrementar_visita', { 
+          producto_ean: product.ean.toString() 
+        }).catch(err => console.error("Error al registrar visita:", err));
+      }
+
       getProductHistory(product.nombre, 365)
         .then(data => setHistory(data || []))
         .catch(() => setHistory([]));
