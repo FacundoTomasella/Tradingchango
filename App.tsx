@@ -309,17 +309,25 @@ const [config, setConfig] = useState<Record<string, string>>({});
   // --- 2. SESIÓN INICIAL Y ESCUCHA DE AUTH (Limpio y Cerrado) ---
   // --- 2. SESIÓN INICIAL Y ESCUCHA DE AUTH ---
 useEffect(() => {
-  const auth = supabase.auth as any;
+  const initializeSession = async () => {
+    // 1. Carga inicial de datos públicos (productos, historial, etc.)
+    await loadData(null);
 
-  loadData(null);
-
-  auth.getSession().then(({ data: { session } }: any) => {
+    // 2. Verificación de la sesión de Supabase
+    const { data: { session } } = await supabase.auth.getSession();
     const sessionUser = session?.user ?? null;
     setUser(sessionUser);
-    if (sessionUser) loadData(sessionUser);
-  });
 
-  const { data: { subscription } } = auth.onAuthStateChange((event: any, session: any) => {
+    // 3. Si hay usuario, cargamos sus datos específicos (perfil, carrito)
+    if (sessionUser) {
+      await loadData(sessionUser);
+    }
+  };
+
+  initializeSession();
+
+  // 4. Escucha de cambios en la autenticación
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
     const sessionUser = session?.user ?? null;
     setUser(sessionUser);
     
@@ -328,10 +336,8 @@ useEffect(() => {
       localStorage.setItem('active_auth_view', 'update_password');
     }
 
-    // Si el usuario inicia sesión O sus datos se actualizan (como al cambiar contraseña),
-    // recargamos sus datos.
     if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-      loadData(sessionUser);
+      loadData(sessionUser); // Recargamos datos del usuario al iniciar sesión o actualizar
     }
     
     if (event === 'SIGNED_OUT') { 
@@ -343,7 +349,7 @@ useEffect(() => {
   });
 
   return () => {
-    if (subscription) subscription.unsubscribe();
+    subscription?.unsubscribe();
   };
 }, [loadData]);
 
@@ -353,8 +359,9 @@ useEffect(() => {
   localStorage.setItem('tc_favs', JSON.stringify(favorites));
   localStorage.setItem('tc_saved_lists', JSON.stringify(savedCarts));
 
-   const sincronizarConNube = async () => {
-    if (user && !loading) {
+  const sincronizarConNube = async () => {
+    // CONDICIÓN: Solo guardar si el perfil está cargado.
+    if (user && profile && !loading) {
       try {
         const dataToSave = { active: favorites, saved: savedCarts };
         await saveCartData(user.id, dataToSave);
@@ -402,41 +409,33 @@ useEffect(() => {
     return profile.subscription_end ? new Date(profile.subscription_end) > new Date() : false;
   }, [profile]);
 
-  const filteredProducts = useMemo(() => {
+  const baseFilteredProducts = useMemo(() => {
     const currentPath = location.pathname;
     let result = products.map(p => {
-      // 1. Parsear el JSON de outliers
       let outlierData: any = {};
       try {
         outlierData = typeof p.outliers === 'string' ? JSON.parse(p.outliers) : (p.outliers || {});
       } catch (e) { outlierData = {}; }
 
-      // 2. Construir el array de precios FILTRADO
       const prices = STORES.map(s => {
-        const storeKey = s.name.toLowerCase().replace(' ', ''); // coto, carrefour, etc.
+        const storeKey = s.name.toLowerCase().replace(' ', '');
         const price = (p as any)[s.key] || 0;
         const url = (p as any)[s.url];
         const stockKey = `stock_${storeKey}`;
         const hasStock = (p as any)[stockKey] !== false;
-
-        // VALIDACIÓN: ¿Es outlier? ¿Tiene URL válida?
         const isOutlier = outlierData[storeKey] === true;
         const hasUrl = url && url !== '#' && url.length > 5;
 
         if (price > 0 && hasUrl && !isOutlier && hasStock) {
           return price;
         }
-        return 0; // Se ignora
+        return 0;
       });
 
       const h7 = history.find(h => h.nombre_producto === p.nombre);
       return { ...p, stats: getStats(prices, h7?.precio_minimo || 0), prices };
     })
-     
-    .filter(p => {
-      const proveedoresConPrecio = p.prices.filter(price => price > 0).length;
-      return proveedoresConPrecio >= 2;
-    });
+    .filter(p => p.prices.filter(price => price > 0).length >= 2);
 
     if (currentPath === '/carnes') result = result.filter(p => p.categoria?.toLowerCase().includes('carne'));
     else if (currentPath === '/verdu') result = result.filter(p => p.categoria?.toLowerCase().includes('verdu') || p.categoria?.toLowerCase().includes('fruta'));
@@ -448,21 +447,6 @@ useEffect(() => {
         return !excludedCategories.some(excluded => cat.includes(excluded));
       });
     }
-    if (currentPath === '/chango') {
-      const cartItems: CartItem[] = result
-        .filter(p => favorites[p.id])
-        .map(p => ({ ...p, quantity: favorites[p.id] || 1 }));
-      
-      const storeTotals = STORES.map(store => {
-        const storeKey = store.name.toLowerCase().replace(' ', '');
-        return {
-          name: store.name,
-          total: calculateStoreTotal(cartItems, storeKey)
-        };
-      });
-
-      result = result.filter(p => favorites[p.id]);
-    }
 
     if (searchTerm) {
       const t = searchTerm.toLowerCase();
@@ -472,7 +456,27 @@ useEffect(() => {
       result = result.filter(p => trendFilter === 'up' ? p.stats.isUp : p.stats.isDown);
     }
     return result;
-  }, [products, history, location.pathname, searchTerm, trendFilter, favorites]);
+  }, [products, history, location.pathname, searchTerm, trendFilter]);
+
+  const filteredProducts = useMemo(() => {
+    if (location.pathname !== '/chango') {
+      return baseFilteredProducts;
+    }
+    
+    const cartItems: CartItem[] = baseFilteredProducts
+      .filter(p => favorites[p.id])
+      .map(p => ({ ...p, quantity: favorites[p.id] || 1 }));
+    
+    const storeTotals = STORES.map(store => {
+      const storeKey = store.name.toLowerCase().replace(' ', '');
+      return {
+        name: store.name,
+        total: calculateStoreTotal(cartItems, storeKey)
+      };
+    });
+
+    return baseFilteredProducts.filter(p => favorites[p.id]);
+  }, [baseFilteredProducts, location.pathname, favorites]);
 
   const toggleFavorite = (id: number) => {
     if (!user) {
