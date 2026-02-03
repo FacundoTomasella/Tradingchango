@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase, getProducts, getPriceHistory, getProfile, getConfig, getBenefits, getSavedCartData, saveCartData } from './services/supabase';
 import { Product, PriceHistory, Profile, TabType, ProductStats, Benefit, CartItem } from './types';
@@ -12,6 +12,10 @@ import CartSummary from './components/CartSummary';
 import Footer from './components/Footer';
 import { AboutView, TermsView, ContactView } from './components/InfoViews';
 import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
+
+const MemoizedHeader = memo(Header); 
+const MemoizedBottomNav = memo(BottomNav); 
+const MemoizedFooter = memo(Footer);
 
 
 const slugify = (text: string) => {
@@ -230,128 +234,114 @@ const [config, setConfig] = useState<Record<string, string>>({});
     }
   };
 
-    const loadData = useCallback(async (sessionUser: User | null) => {
-  try {
-    // 1. CARGA INICIAL DESDE CACHÉ (Evita que la pantalla se trabe si la DB está ocupada)
-    if (products.length === 0) {
-      const cachedProds = localStorage.getItem('tc_cache_products');
-      const cachedHist = localStorage.getItem('tc_cache_history');
-      const cachedConf = localStorage.getItem('tc_cache_config');
+    const loadData = useCallback(async (sessionUser: User | null) => { 
+     try { 
+       // 1. INTENTO DE CARGA INSTANTÁNEA DESDE CACHÉ 
+       if (products.length === 0) { 
+         const cachedProds = localStorage.getItem('tc_cache_products'); 
+         const cachedConf = localStorage.getItem('tc_cache_config'); 
+         if (cachedProds) { 
+           setProducts(JSON.parse(cachedProds)); 
+           if (cachedConf) setConfig(JSON.parse(cachedConf)); 
+           setLoading(false); // Quitamos el "Conectando..." de inmediato 
+         } else { 
+           setLoading(true); 
+         } 
+       } 
+ 
+       // 2. CARGA DE DATOS ESENCIALES (Config y Productos) 
+       const [prodData, configData] = await Promise.all([ 
+         getProducts(), 
+         getConfig() 
+       ]); 
+ 
+       const productsWithOutliers = calculateOutliers(prodData || []); 
+       setProducts(productsWithOutliers || []); 
+       setConfig(configData || {}); 
+       
+       // Guardamos en caché esencial 
+       localStorage.setItem('tc_cache_products', JSON.stringify(productsWithOutliers)); 
+       localStorage.setItem('tc_cache_config', JSON.stringify(configData || {})); 
+ 
+       // 3. CARGA NO BLOQUEANTE (Historial y Beneficios) 
+       // Se ejecutan después para no frenar el renderizado de la lista 
+       getPriceHistory(7).then(hist => { 
+         setHistory(hist || []); 
+         localStorage.setItem('tc_cache_history', JSON.stringify(hist || [])); 
+       }); 
+       
+       getBenefits(new Date().getDay()).then(setBenefits); 
+ 
+       // 4. LÓGICA DE USUARIO (Mantenida intacta) 
+       if (sessionUser) { 
+         let prof = await getProfile(sessionUser.id); 
+         if (prof && prof.subscription === 'pro' && prof.subscription_end) { 
+           const expiryDate = new Date(prof.subscription_end); 
+           if (expiryDate < new Date()) { 
+             await supabase.from('perfiles').update({ subscription: 'free' }).eq('id', sessionUser.id); 
+             prof = { ...prof, subscription: 'free' }; 
+           } 
+         } 
+         setProfile(prof); 
+         
+         const cartData = await getSavedCartData(sessionUser.id); 
+         if (cartData) { 
+           setFavorites(cartData.active || {}); 
+           setSavedCarts(cartData.saved || []); 
+           localStorage.setItem('tc_favs', JSON.stringify(cartData.active || {})); 
+           localStorage.setItem('tc_saved_lists', JSON.stringify(cartData.saved || [])); 
+         } 
+       } 
+     } catch (err: any) { 
+       console.error("Error loading app data:", err); 
+     } finally { 
+       setLoading(false); 
+       isInitialMount.current = false; 
+     } 
+   }, [products.length]);
 
-      if (cachedProds && cachedHist && cachedConf) {
-        // Si hay caché, la mostramos de una y quitamos el loading
-        setProducts(JSON.parse(cachedProds));
-        setHistory(JSON.parse(cachedHist));
-        setConfig(JSON.parse(cachedConf));
-        setLoading(false); 
-      } else {
-        // Si no hay nada en caché y no hay productos, activamos el loading normal
-        setLoading(true);
-      }
-    }
-
-    // 2. PETICIÓN A SUPABASE (Se ejecuta en paralelo)
-    const [prodData, histData, configData] = await Promise.all([
-      getProducts(),
-      getPriceHistory(7),
-      getConfig()
-    ]);
-
-    // Procesamos la información recibida
-    const productsWithOutliers = calculateOutliers(prodData || []);
-    
-    // Actualizamos estados con datos frescos
-    setProducts(productsWithOutliers || []);
-    setHistory(histData || []);
-    setConfig(configData || {});
-
-    // 3. ACTUALIZAMOS EL CACHÉ (Para la próxima vez que la DB esté lenta)
-    if (prodData && prodData.length > 0) {
-      localStorage.setItem('tc_cache_products', JSON.stringify(productsWithOutliers));
-      localStorage.setItem('tc_cache_history', JSON.stringify(histData || []));
-      localStorage.setItem('tc_cache_config', JSON.stringify(configData || {}));
-    }
-
-    // --- LÓGICA DE USUARIO Y PERFIL (Mantenida intacta) ---
-    if (sessionUser) {
-      let prof = await getProfile(sessionUser.id);
-      if (prof && prof.subscription === 'pro' && prof.subscription_end) {
-        const expiryDate = new Date(prof.subscription_end);
-        if (expiryDate < new Date()) {
-          await supabase.from('perfiles').update({ subscription: 'free' }).eq('id', sessionUser.id);
-          prof = { ...prof, subscription: 'free' };
-        }
-      }
-      setProfile(prof);
-      
-      const cartData = await getSavedCartData(sessionUser.id);
-      if (cartData) {
-        setFavorites(cartData.active || {});
-        setSavedCarts(cartData.saved || []);
-        localStorage.setItem('tc_favs', JSON.stringify(cartData.active || {}));
-        localStorage.setItem('tc_saved_lists', JSON.stringify(cartData.saved || []));
-      }
-    }
-    
-    const day = new Date().getDay();
-    const benefitData = await getBenefits(day);
-    setBenefits(benefitData);
-
-  } catch (err: any) {
-    console.error("Error loading app data (La DB podría estar ocupada):", err);
-    // Si hay un error (por el bot), el usuario no se entera porque ya está viendo la caché.
-  } finally {
-    setLoading(false);
-    isInitialMount.current = false;
-  }
-}, [products.length, calculateOutliers]); // Asegúrate de que calculateOutliers esté en las dependencias si es necesario
-
-  // --- 2. SESIÓN INICIAL Y ESCUCHA DE AUTH (Limpio y Cerrado) ---
-  // --- 2. SESIÓN INICIAL Y ESCUCHA DE AUTH ---
-useEffect(() => {
-  const initializeSession = async () => {
-    // 1. Carga inicial de datos públicos (productos, historial, etc.)
-    await loadData(null);
-
-    // 2. Verificación de la sesión de Supabase
-    const { data: { session } } = await supabase.auth.getSession();
-    const sessionUser = session?.user ?? null;
-    setUser(sessionUser);
-
-    // 3. Si hay usuario, cargamos sus datos específicos (perfil, carrito)
-    if (sessionUser) {
-      await loadData(sessionUser);
-    }
-  };
-
-  initializeSession();
-
-  // 4. Escucha de cambios en la autenticación
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    const sessionUser = session?.user ?? null;
-    setUser(sessionUser);
-    
-    if (event === 'PASSWORD_RECOVERY') {
-      setIsAuthOpen(true);
-      localStorage.setItem('active_auth_view', 'update_password');
-    }
-
-    if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-      loadData(sessionUser); // Recargamos datos del usuario al iniciar sesión o actualizar
-    }
-    
-    if (event === 'SIGNED_OUT') { 
-      setProfile(null); 
-      setFavorites({}); 
-      setSavedCarts([]); 
-      setPurchasedItems(new Set());
-    }
-  });
-
-  return () => {
-    subscription?.unsubscribe();
-  };
-}, [loadData]);
+  // --- 2. UNIFICADO: SESIÓN INICIAL Y ESCUCHA DE AUTH --- 
+   useEffect(() => { 
+     const auth = supabase.auth as any; 
+ 
+     const initialize = async () => { 
+       // Obtenemos sesión actual 
+       const { data: { session } } = await auth.getSession(); 
+       const sessionUser = session?.user ?? null; 
+       setUser(sessionUser); 
+       // Cargamos datos (loadData ya maneja el caché internamente ahora) 
+       loadData(sessionUser); 
+     }; 
+ 
+     initialize(); 
+ 
+     const { data: { subscription } } = auth.onAuthStateChange(async (event: any, session: any) => { 
+       const sessionUser = session?.user ?? null; 
+       setUser(sessionUser); 
+       
+       if (event === 'SIGNED_IN' || event === 'USER_UPDATED') { 
+         loadData(sessionUser); 
+       } 
+       
+       if (event === 'PASSWORD_RECOVERY') { 
+         setIsAuthOpen(true); 
+         localStorage.setItem('active_auth_view', 'update_password'); 
+       } 
+ 
+       if (event === 'SIGNED_OUT') { 
+         setProfile(null); 
+         setFavorites({}); 
+         setSavedCarts([]); 
+         setPurchasedItems(new Set()); 
+         localStorage.removeItem('tc_favs'); 
+         localStorage.removeItem('tc_saved_lists'); 
+       } 
+     }); 
+ 
+     return () => { 
+       if (subscription) subscription.unsubscribe(); 
+     }; 
+   }, [loadData]);
 
 // --- PERSISTENCIA MEJORADA (LOCAL + NUBE + MINIMIZADO) ---
   useEffect(() => {
@@ -448,15 +438,26 @@ useEffect(() => {
       });
     }
 
+    // --- FILTRO DE BÚSQUEDA OPTIMIZADO ---
     if (searchTerm) {
-      const t = searchTerm.toLowerCase();
-      result = result.filter(p => p.nombre.toLowerCase().includes(t) || (p.ticker && p.ticker.toLowerCase().includes(t)));
+      const t = searchTerm.toLowerCase().trim(); // Quitamos espacios locos
+      if (t.length > 0) { // Solo filtramos si realmente hay texto
+        result = result.filter(p => {
+          // Buscamos en nombre y ticker (si existe)
+          const nameMatch = p.nombre.toLowerCase().includes(t);
+          const tickerMatch = p.ticker && p.ticker.toLowerCase().includes(t);
+          return nameMatch || tickerMatch;
+        });
+      }
     }
+
+    // --- FILTRO DE TENDENCIAS ---
     if (trendFilter && currentPath !== '/chango') {
       result = result.filter(p => trendFilter === 'up' ? p.stats.isUp : p.stats.isDown);
     }
+
     return result;
-  }, [products, history, location.pathname, searchTerm, trendFilter]);
+  }, [products, history, location.pathname, searchTerm, trendFilter]); // useMemo protege el rendimiento
 
   const filteredProducts = useMemo(() => {
     if (location.pathname !== '/chango') {
@@ -637,7 +638,7 @@ useEffect(() => {
     </div>
   </div>
 )}
-      <Header 
+      <MemoizedHeader 
         searchTerm={searchTerm} setSearchTerm={setSearchTerm} 
         toggleTheme={toggleTheme} theme={theme}
         onUserClick={() => setIsAuthOpen(true)} user={user}
@@ -760,7 +761,7 @@ useEffect(() => {
 
 </Routes>
       </main>
-      <BottomNav cartCount={visibleCartCount} />
+      <MemoizedBottomNav cartCount={Object.keys(favorites).length} />
       {isAuthOpen && <AuthModal 
         isOpen={isAuthOpen} 
         onClose={() => setIsAuthOpen(false)} 
@@ -774,7 +775,7 @@ useEffect(() => {
         onLoadCart={handleLoadSavedCart}
         currentActiveCartSize={visibleCartCount}
       />}
-      <Footer />
+      <MemoizedFooter />
     </div>
   );
 };

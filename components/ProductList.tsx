@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import React from 'react';
 import { Product } from '../types';
 
@@ -139,7 +140,15 @@ const ProductList: React.FC<ProductListProps> = ({
                  </button>
                )}
                <div className="w-16 h-16 rounded-lg bg-white border border-neutral-100 flex items-center justify-center overflow-hidden shrink-0">
-                  <img src={p.imagen_url || 'https://via.placeholder.com/50?text=N/A'} alt={p.nombre} className="w-full h-full object-contain p-1" />
+                  <img 
+                    src={p.imagen_url || 'https://via.placeholder.com/50?text=N/A'} 
+                    alt={p.nombre} 
+                    className="w-full h-full object-contain p-1"
+                    // --- AGREGÁ ESTO PARA VELOCIDAD ---
+                    loading="lazy"       // Carga la imagen solo cuando el usuario la ve al scrollear
+                    decoding="async"     // Procesa la imagen en paralelo sin trabar los botones o el menú
+                    fetchPriority="low"  // Le dice al navegador que los datos de precios son más importantes que las fotos
+                  />
                </div>
             </div>
 
