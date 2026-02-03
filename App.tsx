@@ -231,51 +231,80 @@ const [config, setConfig] = useState<Record<string, string>>({});
   };
 
     const loadData = useCallback(async (sessionUser: User | null) => {
-    try {
-      // MODIFICACIÓN: No poner loading(true) si ya hay productos (evita que se cierre el modal)
-      if (products.length === 0) setLoading(true);
+  try {
+    // 1. CARGA INICIAL DESDE CACHÉ (Evita que la pantalla se trabe si la DB está ocupada)
+    if (products.length === 0) {
+      const cachedProds = localStorage.getItem('tc_cache_products');
+      const cachedHist = localStorage.getItem('tc_cache_history');
+      const cachedConf = localStorage.getItem('tc_cache_config');
 
-      const [prodData, histData, configData] = await Promise.all([
-        getProducts(),
-        getPriceHistory(7),
-        getConfig()
-      ]);
-      const productsWithOutliers = calculateOutliers(prodData || []);
-      setProducts(productsWithOutliers || []);
-      setHistory(histData || []);
-      setConfig(configData || {});
+      if (cachedProds && cachedHist && cachedConf) {
+        // Si hay caché, la mostramos de una y quitamos el loading
+        setProducts(JSON.parse(cachedProds));
+        setHistory(JSON.parse(cachedHist));
+        setConfig(JSON.parse(cachedConf));
+        setLoading(false); 
+      } else {
+        // Si no hay nada en caché y no hay productos, activamos el loading normal
+        setLoading(true);
+      }
+    }
 
-      if (sessionUser) {
-        let prof = await getProfile(sessionUser.id);
-        if (prof && prof.subscription === 'pro' && prof.subscription_end) {
-          const expiryDate = new Date(prof.subscription_end);
-          if (expiryDate < new Date()) {
-            await supabase.from('perfiles').update({ subscription: 'free' }).eq('id', sessionUser.id);
-            prof = { ...prof, subscription: 'free' };
-          }
-        }
-        setProfile(prof);
-        
-        const cartData = await getSavedCartData(sessionUser.id);
-        if (cartData) {
-          setFavorites(cartData.active || {});
-          setSavedCarts(cartData.saved || []);
-          // Sincronizamos LocalStorage con lo que viene de la nube
-          localStorage.setItem('tc_favs', JSON.stringify(cartData.active || {}));
-          localStorage.setItem('tc_saved_lists', JSON.stringify(cartData.saved || []));
+    // 2. PETICIÓN A SUPABASE (Se ejecuta en paralelo)
+    const [prodData, histData, configData] = await Promise.all([
+      getProducts(),
+      getPriceHistory(7),
+      getConfig()
+    ]);
+
+    // Procesamos la información recibida
+    const productsWithOutliers = calculateOutliers(prodData || []);
+    
+    // Actualizamos estados con datos frescos
+    setProducts(productsWithOutliers || []);
+    setHistory(histData || []);
+    setConfig(configData || {});
+
+    // 3. ACTUALIZAMOS EL CACHÉ (Para la próxima vez que la DB esté lenta)
+    if (prodData && prodData.length > 0) {
+      localStorage.setItem('tc_cache_products', JSON.stringify(productsWithOutliers));
+      localStorage.setItem('tc_cache_history', JSON.stringify(histData || []));
+      localStorage.setItem('tc_cache_config', JSON.stringify(configData || {}));
+    }
+
+    // --- LÓGICA DE USUARIO Y PERFIL (Mantenida intacta) ---
+    if (sessionUser) {
+      let prof = await getProfile(sessionUser.id);
+      if (prof && prof.subscription === 'pro' && prof.subscription_end) {
+        const expiryDate = new Date(prof.subscription_end);
+        if (expiryDate < new Date()) {
+          await supabase.from('perfiles').update({ subscription: 'free' }).eq('id', sessionUser.id);
+          prof = { ...prof, subscription: 'free' };
         }
       }
+      setProfile(prof);
       
-      const day = new Date().getDay();
-      const benefitData = await getBenefits(day);
-      setBenefits(benefitData);
-    } catch (err: any) {
-      console.error("Error loading app data:", err);
-    } finally {
-      setLoading(false);
-      isInitialMount.current = false;
+      const cartData = await getSavedCartData(sessionUser.id);
+      if (cartData) {
+        setFavorites(cartData.active || {});
+        setSavedCarts(cartData.saved || []);
+        localStorage.setItem('tc_favs', JSON.stringify(cartData.active || {}));
+        localStorage.setItem('tc_saved_lists', JSON.stringify(cartData.saved || []));
+      }
     }
-  }, [products.length]);
+    
+    const day = new Date().getDay();
+    const benefitData = await getBenefits(day);
+    setBenefits(benefitData);
+
+  } catch (err: any) {
+    console.error("Error loading app data (La DB podría estar ocupada):", err);
+    // Si hay un error (por el bot), el usuario no se entera porque ya está viendo la caché.
+  } finally {
+    setLoading(false);
+    isInitialMount.current = false;
+  }
+}, [products.length, calculateOutliers]); // Asegúrate de que calculateOutliers esté en las dependencias si es necesario
 
   // --- 2. SESIÓN INICIAL Y ESCUCHA DE AUTH (Limpio y Cerrado) ---
   // --- 2. SESIÓN INICIAL Y ESCUCHA DE AUTH ---
